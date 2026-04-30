@@ -42,6 +42,8 @@ const CHAINRIGHT_ABI = [
   "function ownerOf(uint256) view returns (address)",
   
   // Write
+  // Compatibilidad: algunos despliegues usan 4 args, otros 5 args
+  "function mintWithProvenance(bytes32, string, string, string)",
   "function mintWithProvenance(bytes32, string, string, string, string)",
   
   // Events
@@ -235,15 +237,28 @@ export async function mintWithProvenance(
     // Normalizar merkleRoot
     const normalizedRoot = merkleRoot.startsWith("0x") ? merkleRoot : `0x${merkleRoot}`;
 
-    // Llamar a mintWithProvenance
-    // function mintWithProvenance(bytes32, string, string, string, string)
-    const tx: ContractTransactionResponse = await contract.mintWithProvenance(
-      normalizedRoot,
-      zkResKey,
-      prompt,
-      model,
-      metadataUri
-    );
+    // Llamar a mintWithProvenance (firma adaptable)
+    // 1) Probar firma de 4 args
+    // 2) Si no existe/revierte por selector, probar 5 args
+    let tx: ContractTransactionResponse;
+
+    try {
+      tx = await contract["mintWithProvenance(bytes32,string,string,string)"](
+        normalizedRoot,
+        zkResKey,
+        prompt,
+        model
+      );
+    } catch (firstErr: any) {
+      // Fallback a firma de 5 args para despliegues anteriores
+      tx = await contract["mintWithProvenance(bytes32,string,string,string,string)"](
+        normalizedRoot,
+        zkResKey,
+        prompt,
+        model,
+        metadataUri
+      );
+    }
 
     console.log("Transacción enviada:", tx.hash);
     console.log("Esperando confirmación...");

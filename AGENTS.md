@@ -38,8 +38,9 @@ El jurado verá:
 
 - **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS v4
 - **Blockchain**: 0G Chain (EVM-compatible, evmVersion: "cancun")
-- **Storage**: 0G Storage (@0glabs/0g-ts-sdk 0.3.3)
+- **Storage**: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8)
 - **Compute**: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
+- **Fallback Compute**: OpenAI Images API (solo tras consentimiento explícito)
 - **Contracts**: Solidity ^0.8.24 + Hardhat
 - **Wallet**: ethers v6.13.1 + MetaMask
 - **Deploy**: Vercel (frontend) + 0G Testnet (contracts)
@@ -82,6 +83,14 @@ El jurado verá:
 | `cross-layer/compute-plus-storage` | Cross-layer | Generate + store pipeline |
 
 ## CRITICAL 0G RULES — THESE BREAK THINGS IF IGNORED
+
+## Fallback Rule (No Providers)
+
+- Si no hay providers de `text-to-image` en 0G:
+  1. Mostrar modal al usuario explicando el fallback.
+  2. Ejecutar OpenAI fallback SOLO si el usuario acepta.
+  3. Nunca ejecutar fallback automáticamente sin consentimiento.
+  4. Usar perfil económico para demo (`gpt-image-1-mini`, `size: auto`, calidad baja, jpeg comprimido).
 
 ### Compute Rules (processResponse)
 
@@ -176,7 +185,7 @@ From `.0g-skills/AGENTS.md`:
 
 | Contract | Network | Address | Verified |
 |---|---|---|---|
-| ChainRightERC721 | 0G Testnet | `TBD` | ⬜ |
+| ChainRightERC721 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
 
 > Update this table after every deploy.
 

@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useActionState } from "react";
-import { actionGenerateImage, actionUploadImage, actionMintNFT } from "@/app/actions";
+import {
+  actionGenerateImage,
+  actionGenerateImageWithFallback,
+  actionMintNFT,
+} from "@/app/actions";
 import { cn } from "@/lib/utils";
 import type { ImageGenerationResult, StorageUploadResult, MintResult } from "@/lib/types";
 
@@ -17,6 +21,9 @@ export default function CreatePage() {
   const [storageResult, setStorageResult] = useState<StorageUploadResult | null>(null);
   const [mintResult, setMintResult] = useState<MintResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showFallbackModal, setShowFallbackModal] = useState(false);
+  const [fallbackReason, setFallbackReason] = useState<string | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string>("");
 
   // ============ Paso 1: Generar Imagen ============
 
@@ -28,6 +35,17 @@ export default function CreatePage() {
 
     try {
       const result = await actionGenerateImage(prompt);
+
+      if (result.fallbackRequired) {
+        setPendingPrompt(prompt);
+        setFallbackReason(
+          result.fallbackReason ||
+            "No hay providers de text-to-image en 0G en este momento."
+        );
+        setShowFallbackModal(true);
+        setStep("prompt");
+        return;
+      }
 
       if (!result.success) {
         setError(result.error || "Error desconocido");
@@ -43,6 +61,39 @@ export default function CreatePage() {
     }
   }
 
+  /**
+   * Ejecuta fallback OpenAI solo después de consentimiento explícito del usuario.
+   */
+  async function handleAcceptFallback() {
+    setShowFallbackModal(false);
+    setError(null);
+    setStep("generating");
+
+    try {
+      const result = await actionGenerateImageWithFallback(pendingPrompt);
+
+      if (!result.success) {
+        setError(result.error || "Error en fallback OpenAI");
+        setStep("prompt");
+        return;
+      }
+
+      setImageResult(result);
+      setStep("generated");
+    } catch (err: any) {
+      setError(err.message || "Error inesperado en fallback");
+      setStep("prompt");
+    }
+  }
+
+  /**
+   * Cancela fallback y mantiene al usuario en el paso de prompt.
+   */
+  function handleCancelFallback() {
+    setShowFallbackModal(false);
+    setStep("prompt");
+  }
+
   // ============ Paso 2: Subir a Storage ============
 
   async function handleUpload() {
@@ -52,8 +103,20 @@ export default function CreatePage() {
     setStep("uploading");
 
     try {
-      // imageUrl es un data URL
-      const result = await actionUploadImage(imageResult.imageUrl, "png");
+      // Convertir data URL a Blob y enviar por multipart
+      const resp = await fetch(imageResult.imageUrl);
+      const blob = await resp.blob();
+      const ext = blob.type.includes("jpeg") ? "jpeg" : blob.type.includes("webp") ? "webp" : "png";
+
+      const form = new FormData();
+      form.append("file", new File([blob], `chainright.${ext}`, { type: blob.type || `image/${ext}` }));
+
+      const apiResp = await fetch("/api/storage/upload", {
+        method: "POST",
+        body: form,
+      });
+
+      const result = await apiResp.json();
 
       if (!result.success) {
         setError(result.error || "Error subiendo a Storage");
@@ -230,6 +293,14 @@ export default function CreatePage() {
               <DataRow label="Modelo" value={imageResult.model} />
               <DataRow label="ZG-Res-Key" value={imageResult.zkResKey || "(no disponible)"} isHash />
               <DataRow label="Provider" value={imageResult.providerAddress} isHash />
+              <DataRow
+                label="Fuente"
+                value={
+                  imageResult.source === "openai-fallback"
+                    ? "OpenAI (fallback con consentimiento)"
+                    : "0G Compute"
+                }
+              />
             </div>
           </div>
 
@@ -342,6 +413,50 @@ export default function CreatePage() {
           >
             🎨 Crear otra obra
           </button>
+        </div>
+      )}
+
+      {/* Modal de consentimiento de fallback */}
+      {showFallbackModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-lg">
+            <h3 className="mb-3 text-xl font-semibold text-slate-100">
+              No hay providers de text-to-image en 0G ahora
+            </h3>
+            <p className="mb-4 text-sm text-slate-400">
+              {fallbackReason}
+            </p>
+            <p className="mb-6 text-sm text-slate-300">
+              Podemos usar <strong>OpenAI</strong> como fallback para generar la imagen,
+              y luego continuar igual con 0G Storage + mint en 0G testnet.
+              <br />
+              <span className="text-slate-500">
+                El fallback solo se ejecuta si vos lo aceptás explícitamente.
+              </span>
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelFallback}
+                className={cn(
+                  "flex-1 rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-300 transition-all",
+                  "hover:border-slate-600"
+                )}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAcceptFallback}
+                className={cn(
+                  "flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-all",
+                  "bg-gradient-to-r from-cyan-500 to-blue-600 text-white",
+                  "hover:from-cyan-400 hover:to-blue-500"
+                )}
+              >
+                Aceptar fallback y generar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

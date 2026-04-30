@@ -20,6 +20,9 @@ export interface Provenance {
 // ============================================
 export interface ImageGenerationResult {
   success: boolean;
+  fallbackRequired?: boolean;   // true cuando no hay providers 0G y se requiere consentimiento
+  fallbackReason?: string;      // motivo de fallback
+  source?: "0g-compute" | "openai-fallback";
   imageUrl?: string;            // URL de la imagen (o base64)
   imageData?: Uint8Array;       // Datos binarios de la imagen
   zkResKey: string;             // ZG-Res-Key del header

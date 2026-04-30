@@ -6,8 +6,10 @@
 - Framework: Next.js 15 (App Router) + React 19
 - Smart Contracts: Solidity + Hardhat
 - Styling: Tailwind CSS v4
-- Storage: 0G Storage (@0glabs/0g-ts-sdk 0.3.3)
+- Storage: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8)
 - Compute: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
+- Fallback Image Generation: OpenAI Images API (`openai`)
+  - Demo profile: `gpt-image-1-mini`, `size: auto` (válido), `quality: low`, `jpeg` + compression
 - Chain: 0G Chain (EVM-compatible, evmVersion: "cancun")
 - Wallet: ethers v6.13.1 + MetaMask (RainbowKit para demo avanzada - DEMO: usar ethers directamente para simplicidad)
 - Deploy: Vercel (frontend) + 0G Testnet (contracts)
@@ -30,7 +32,7 @@
 
 | Contract | Network | Address | Verified |
 |---|---|---|---|
-| ChainRightERC721 | 0G Testnet | `TBD` | ⬜ |
+| ChainRightERC721 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
 
 ## Agent Skills
 
@@ -92,8 +94,11 @@ chainright/
 | `NEXT_PUBLIC_RPC_URL` | `https://evmrpc-testnet.0g.ai` |
 | `NEXT_PUBLIC_CHAIN_ID` | `16602` |
 | `NEXT_PUBLIC_STORAGE_INDEXER` | `https://indexer-storage-testnet-turbo.0g.ai` |
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `TBD` - despues de deploy |
+| `RPC_URL` | `https://evmrpc-testnet.0g.ai` (server-side actions) |
+| `STORAGE_INDEXER` | `https://indexer-storage-testnet-turbo.0g.ai` (server-side actions) |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` |
 | `PROVIDER_ADDRESS` | `TBD` - provider de text-to-image (se descubre via provider-discovery) |
+| `OPENAI_API_KEY` | API key para fallback de imagen cuando no hay providers en 0G |
 
 ## Commands
 
@@ -124,6 +129,40 @@ chainright/
 | Explorer | `https://chainscan.0g.ai` |
 
 ## Critical Rules (de 0G AGENTS.md)
+
+## Contract ABI Compatibility Note
+
+- `mintWithProvenance` en el despliegue actual usa firma de 4 args:
+  `mintWithProvenance(bytes32 merkleRoot, string zkResKey, string prompt, string model)`
+- El wrapper `lib/contract.ts` tiene fallback compatible para 4/5 args.
+
+## Storage Upload Troubleshooting
+
+- Si aparece `execution reverted` en upload:
+  1. Confirmar que `PRIVATE_KEY` sea la wallet fondeada en testnet.
+  2. Confirmar coherencia de entorno server-side: `RPC_URL` + `STORAGE_INDEXER`.
+  3. Verificar payload no vacío y tamaño razonable.
+
+## Fallback Strategy (text-to-image)
+
+- Intentar SIEMPRE primero `0G Compute`.
+- Si no hay providers disponibles:
+  - La app muestra un modal de consentimiento.
+  - Solo si el usuario acepta, se ejecuta fallback con OpenAI.
+  - El fallback usa perfil económico para demo (bajo costo).
+- El flujo posterior se mantiene en testnet:
+  - Upload a 0G Storage
+  - Mint en 0G Chain
+  - Verify on-chain
+
+## Storage Upload Transport
+
+- El guardado a 0G Storage se hace vía `POST /api/storage/upload` (multipart/form-data).
+- Motivo: mayor estabilidad que enviar base64 pesado por Server Actions en este flujo.
+
+## Next.js Server Actions Limits
+
+- Se configuró `serverActions.bodySizeLimit = "8mb"` en `next.config.ts` para permitir envío de imagen base64 al guardar en 0G Storage.
 
 ### SIEMPRE:
 - Llamar `processResponse()` DESPUÉS de CADA inferencia

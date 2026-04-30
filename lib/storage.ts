@@ -1,4 +1,4 @@
-import { ZgFile, Indexer } from "@0glabs/0g-ts-sdk";
+import { ZgFile, Indexer } from "@0gfoundation/0g-ts-sdk";
 import { JsonRpcProvider, Wallet } from "ethers";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -21,8 +21,35 @@ import type { MerkleResult, StorageUploadResult, StorageDownloadResult } from ".
 //
 // ============================================
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://evmrpc-testnet.0g.ai";
-const STORAGE_INDEXER = process.env.NEXT_PUBLIC_STORAGE_INDEXER || "https://indexer-storage-testnet-turbo.0g.ai";
+const RPC_URL =
+  process.env.RPC_URL ||
+  process.env.NEXT_PUBLIC_RPC_URL ||
+  "https://evmrpc-testnet.0g.ai";
+const STORAGE_INDEXER =
+  process.env.STORAGE_INDEXER ||
+  process.env.NEXT_PUBLIC_STORAGE_INDEXER ||
+  "https://indexer-storage-testnet-turbo.0g.ai";
+
+/**
+ * Normaliza extensión de archivo para upload temporal.
+ */
+function normalizeFileExtension(ext: string): string {
+  const clean = (ext || "png").toLowerCase().replace(".", "");
+  if (["png", "jpg", "jpeg", "webp", "json", "txt"].includes(clean)) return clean;
+  return "png";
+}
+
+/**
+ * Chequea balance mínimo para evitar estimateGas confuso en upload.
+ */
+async function ensureWalletHasBalance(wallet: Wallet): Promise<void> {
+  const balance = await wallet.provider?.getBalance(wallet.address);
+  if (!balance || balance <= BigInt(0)) {
+    throw new Error(
+      "Wallet sin balance 0G para upload. Fondeá la misma wallet usada en PRIVATE_KEY."
+    );
+  }
+}
 
 /**
  * Obtiene el cliente Indexer de 0G Storage.
@@ -142,6 +169,8 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
     const indexer = getIndexer();
     const wallet = getWallet();
 
+    await ensureWalletHasBalance(wallet);
+
     file = await ZgFile.fromFilePath(filePath);
 
     // ============ PASO 1: Generar Merkle Tree ============
@@ -162,12 +191,12 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
     }
 
     // ============ PASO 2: Upload ============
-    const [txResult, uploadErr] = await indexer.upload(file, RPC_URL, wallet as any);
+    const [txResult, uploadErr] = await indexer.upload(file as any, RPC_URL, wallet as any);
 
     if (uploadErr) {
       return {
         success: false,
-        error: `Error subiendo archivo: ${uploadErr.message}`,
+        error: `Error subiendo archivo: ${uploadErr.message}. Revisá que PRIVATE_KEY sea la wallet fondeada y que NEXT_PUBLIC_RPC_URL/NEXT_PUBLIC_STORAGE_INDEXER sean testnet coherentes.`,
       };
     }
 
@@ -180,6 +209,15 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
           : (txResult as { txHash?: string } | null)?.txHash,
     };
   } catch (error: any) {
+    const msg = String(error?.message || "");
+    if (msg.includes("execution reverted") || msg.includes("CALL_EXCEPTION")) {
+      return {
+        success: false,
+        error:
+          "Upload revertido por contrato de storage (estimateGas). Causa típica: key/rpc/indexer no coherentes o payload inválido. Verificá NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_STORAGE_INDEXER y PRIVATE_KEY de la wallet fondeada.",
+      };
+    }
+
     return {
       success: false,
       error: `Error inesperado en upload: ${error.message}`,
@@ -197,7 +235,15 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
  * Útil para imágenes generadas por el usuario.
  */
 export async function uploadBuffer(data: Uint8Array, fileExtension = "png"): Promise<StorageUploadResult> {
-  const tempPath = path.join(os.tmpdir(), `chainright-upload-${Date.now()}.${fileExtension}`);
+  const safeExtension = normalizeFileExtension(fileExtension);
+  const tempPath = path.join(os.tmpdir(), `chainright-upload-${Date.now()}.${safeExtension}`);
+
+  if (!data || data.length === 0) {
+    return {
+      success: false,
+      error: "Buffer vacío: no hay datos para subir",
+    };
+  }
 
   try {
     await fs.writeFile(tempPath, data);
