@@ -8,6 +8,12 @@
 @source "../components/**/*.{js,ts,jsx,tsx,mdx}";
 
 @theme {
+  --color-brand-bg: #070B1A;
+  --color-brand-surface: #111A38;
+  --color-brand-purple: #7C3AED;
+  --color-brand-purple-hover: #6D28D9;
+  --color-brand-indigo: #4F46E5;
+
   --color-slate-50: #f8fafc;
   --color-slate-100: #f1f5f9;
   --color-slate-200: #e2e8f0;

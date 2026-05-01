@@ -10,6 +10,7 @@
 - Compute: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
 - Fallback Image Generation: OpenAI Images API (`openai`)
   - Demo profile: `gpt-image-1-mini`, `size: auto` (válido), `quality: low`, `jpeg` + compression
+- Wallet Auth/UI Gate: RainbowKit + Wagmi + Viem
 - Chain: 0G Chain (EVM-compatible, evmVersion: "cancun")
 - Wallet: ethers v6.13.1 + MetaMask (RainbowKit para demo avanzada - DEMO: usar ethers directamente para simplicidad)
 - Deploy: Vercel (frontend) + 0G Testnet (contracts)
@@ -163,6 +164,18 @@ chainright/
 ## Next.js Server Actions Limits
 
 - Se configuró `serverActions.bodySizeLimit = "8mb"` en `next.config.ts` para permitir envío de imagen base64 al guardar en 0G Storage.
+
+## MVP UX Persistence
+
+- Se usa `db.json` como almacenamiento local MVP para `users` y `works`.
+- Endpoints:
+  - `POST /api/users/login`
+  - `GET /api/works?wallet=0x...`
+  - `POST /api/works`
+
+## P2 Backlog
+
+- Reintroducir y mejorar el “Wow Feature” (modificación de 1 píxel y contraste visual de hashes) con UX guiada para video.
 
 ### SIEMPRE:
 - Llamar `processResponse()` DESPUÉS de CADA inferencia

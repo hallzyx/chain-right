@@ -41,6 +41,7 @@ El jurado verá:
 - **Storage**: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8)
 - **Compute**: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
 - **Fallback Compute**: OpenAI Images API (solo tras consentimiento explícito)
+- **Wallet UX**: RainbowKit + Wagmi + Viem (wallet gate obligatorio)
 - **Contracts**: Solidity ^0.8.24 + Hardhat
 - **Wallet**: ethers v6.13.1 + MetaMask
 - **Deploy**: Vercel (frontend) + 0G Testnet (contracts)
@@ -60,7 +61,16 @@ El jurado verá:
 2. **Escribir y deployar el contrato**: ChainRightERC721
 3. **Implementar flujo 1**: Generar + mintear
 4. **Implementar flujo 2**: Verificar autenticidad
-5. **Polish demo**: wow moment del píxel modificado
+5. **Polish demo**: wallet-first UX + resultados tangibles
+
+## MVP Persistence
+
+- Persistencia local demo con `db.json` (users + works).
+- No es producción. Es válido para hackathon MVP.
+
+## P2 Backlog
+
+- Mejorar “wow moment” inicial con experiencia guiada y visual para video.
 
 ## Active Skills
 

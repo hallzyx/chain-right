@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       process: false,
       url: false,
       path: false,
+      "@react-native-async-storage/async-storage": false,
+      "pino-pretty": false,
     };
 
     return config;

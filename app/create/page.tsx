@@ -9,12 +9,15 @@ import {
 } from "@/app/actions";
 import { cn } from "@/lib/utils";
 import type { ImageGenerationResult, StorageUploadResult, MintResult } from "@/lib/types";
+import { useAccount } from "wagmi";
+import { CertificateCard } from "@/components/certificate-card";
 
 /**
  * Página para crear y mintear una obra con procedencia.
  * Client Component.
  */
 export default function CreatePage() {
+  const { address } = useAccount();
   const [step, setStep] = useState<"prompt" | "generating" | "generated" | "uploading" | "stored" | "minting" | "done">("prompt");
   const [prompt, setPrompt] = useState("");
   const [imageResult, setImageResult] = useState<ImageGenerationResult | null>(null);
@@ -161,6 +164,27 @@ export default function CreatePage() {
       }
 
       setMintResult(result);
+
+      // Persistir obra en db.json para la sección "Mis Obras"
+      await fetch("/api/works", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wallet: address,
+          title: "Obra generada en ChainRight",
+          prompt: imageResult.prompt,
+          source: imageResult.source || "0g-compute",
+          model: imageResult.model,
+          imageDataUrl: imageResult.imageUrl,
+          merkleRoot: storageResult.merkleRoot,
+          storageTxHash: storageResult.transactionHash,
+          tokenId: result.tokenId?.toString(),
+          mintTxHash: result.transactionHash,
+          status: "minted",
+          contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
+        }),
+      });
+
       setStep("done");
     } catch (err: any) {
       setError(err.message || "Error inesperado");
@@ -391,18 +415,26 @@ export default function CreatePage() {
             <p className="text-slate-400">Tu obra ahora tiene procedencia verificable on-chain.</p>
           </div>
 
-          {/* Datos */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 space-y-3 text-sm">
-            {mintResult.tokenId !== undefined && (
-              <DataRow label="Token ID" value={mintResult.tokenId.toString()} />
+          {/* Resultado tangible */}
+          <CertificateCard
+            imageUrl={imageResult?.imageUrl}
+            wallet={address}
+            prompt={imageResult?.prompt || ""}
+            model={imageResult?.model || ""}
+            merkleRoot={mintResult.merkleRoot}
+            tokenId={mintResult.tokenId?.toString()}
+            txHash={mintResult.transactionHash}
+          />
+
+          <a
+            href="/my-works"
+            className={cn(
+              "block w-full py-3 rounded-xl text-center text-sm font-semibold",
+              "border border-indigo-500/30 text-indigo-200 hover:border-violet-400 hover:text-violet-200 transition-all"
             )}
-            {mintResult.transactionHash && (
-              <DataRow label="Transaction" value={mintResult.transactionHash} isHash />
-            )}
-            {mintResult.merkleRoot && (
-              <DataRow label="Merkle Root" value={mintResult.merkleRoot} isHash />
-            )}
-          </div>
+          >
+            Ver en Mis Obras
+          </a>
 
           <button
             onClick={handleReset}

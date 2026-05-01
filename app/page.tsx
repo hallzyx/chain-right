@@ -16,7 +16,7 @@ export default function HomePage() {
         </div>
 
         <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-          <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-indigo-300 via-violet-400 to-indigo-500 bg-clip-text text-transparent">
             Procedencia verificable
           </span>
           <br />
@@ -34,10 +34,10 @@ export default function HomePage() {
             href="/create"
             className={cn(
               "px-8 py-4 rounded-xl font-semibold text-lg transition-all",
-              "bg-gradient-to-r from-cyan-500 to-blue-600",
-              "hover:from-cyan-400 hover:to-blue-500",
-              "shadow-lg shadow-cyan-500/25",
-              "hover:shadow-cyan-500/40",
+              "bg-gradient-to-r from-violet-600 to-indigo-600",
+              "hover:from-violet-500 hover:to-indigo-500",
+              "shadow-lg shadow-violet-700/25",
+              "hover:shadow-violet-700/40",
               "transform hover:-translate-y-0.5"
             )}
           >
@@ -48,7 +48,7 @@ export default function HomePage() {
             className={cn(
               "px-8 py-4 rounded-xl font-semibold text-lg transition-all",
               "border-2 border-slate-700 text-slate-300",
-              "hover:border-cyan-500 hover:text-cyan-400",
+              "hover:border-violet-400 hover:text-violet-300",
               "transform hover:-translate-y-0.5"
             )}
           >
@@ -107,7 +107,7 @@ export default function HomePage() {
 
       {/* Wow moment teaser */}
       <div className="mt-24 text-center max-w-2xl mx-auto">
-        <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl p-8">
+        <div className="bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border border-violet-500/20 rounded-2xl p-8">
           <p className="text-4xl mb-4">🤯</p>
           <h3 className="text-xl font-bold mb-3">El Wow Moment</h3>
           <p className="text-slate-400">
