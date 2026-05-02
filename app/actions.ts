@@ -252,3 +252,63 @@ export async function actionVerifyImage(
     message: `Hash calculado: ${merkleRoot}. El contrato no está configurado - no se puede verificar on-chain.`,
   };
 }
+
+/**
+ * Action para verificar procedencia directamente por Merkle Root.
+ * Útil para verificar con un hash pegado manualmente (ej: desde un certificado PDF).
+ */
+export async function actionManualVerify(
+  merkleRoot: string
+): Promise<VerificationResult> {
+  if (!merkleRoot || merkleRoot.length < 10) {
+    return {
+      verified: false,
+      merkleRoot,
+      message: "Merkle Root inválido o demasiado corto.",
+    };
+  }
+
+  if (!isContractConfigured()) {
+    return {
+      verified: false,
+      merkleRoot,
+      message: "El contrato no está configurado.",
+    };
+  }
+
+  return await verifyProvenance(merkleRoot);
+}
+
+/** Datos de red y contrato para mostrar en vivo durante la verificación. */
+export interface VerificationDetails {
+  rpcUrl: string;
+  contractAddress: string;
+  chainId: number;
+  blockNumber: number;
+}
+
+/**
+ * Action para obtener detalles on-chain en tiempo real.
+ * Devuelve RPC, contrato, chain ID y bloque actual — se muestra en la UI
+ * durante la verificación para dar trazabilidad completa.
+ */
+export async function actionGetVerificationDetails(): Promise<VerificationDetails> {
+  const { ethers } = await import("ethers");
+
+  const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://evmrpc-testnet.0g.ai";
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x0000...";
+
+  let chainId = 16602;
+  let blockNumber = 0;
+
+  try {
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const network = await provider.getNetwork();
+    chainId = Number(network.chainId);
+    blockNumber = await provider.getBlockNumber();
+  } catch {
+    // degradación elegante
+  }
+
+  return { rpcUrl, contractAddress, chainId, blockNumber };
+}
