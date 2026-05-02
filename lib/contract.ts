@@ -43,7 +43,7 @@ function getProvider(): ethers.JsonRpcProvider {
  */
 function getReadContract(): Contract {
   if (!CONTRACT_ADDRESS) {
-    throw new Error("NEXT_PUBLIC_CONTRACT_ADDRESS no configurado en .env. Primero deployá el contrato.");
+    throw new Error("NEXT_PUBLIC_CONTRACT_ADDRESS not configured in .env. Deploy the contract first.");
   }
   const provider = getProvider();
   return new Contract(CONTRACT_ADDRESS, CHAINRIGHT_ABI, provider);
@@ -54,7 +54,7 @@ function getReadContract(): Contract {
  */
 function getWriteContract(signerOrPrivateKey?: ethers.Signer | string): Contract {
   if (!CONTRACT_ADDRESS) {
-    throw new Error("NEXT_PUBLIC_CONTRACT_ADDRESS no configurado");
+    throw new Error("NEXT_PUBLIC_CONTRACT_ADDRESS not configured");
   }
 
   let signer: ethers.Signer;
@@ -70,7 +70,7 @@ function getWriteContract(signerOrPrivateKey?: ethers.Signer | string): Contract
     // Intentar usar PRIVATE_KEY del .env
     const privateKey = process.env.PRIVATE_KEY;
     if (!privateKey) {
-      throw new Error("Necesitás un Signer o Private Key para operaciones de escritura");
+      throw new Error("You need a Signer or Private Key for write operations");
     }
     const provider = getProvider();
     signer = new ethers.Wallet(privateKey, provider);
@@ -116,7 +116,7 @@ export async function getProvenance(merkleRoot: string): Promise<Provenance | nu
       exists: true,
     };
   } catch (error: any) {
-    console.error("Error consultando procedencia:", error.message);
+    console.error("Error querying provenance:", error.message);
     return null;
   }
 }
@@ -147,7 +147,7 @@ export async function getProvenanceByToken(tokenId: bigint | number): Promise<Pr
       exists: true,
     };
   } catch (error: any) {
-    console.error("Error consultando por token:", error.message);
+    console.error("Error querying by token:", error.message);
     return null;
   }
 }
@@ -166,14 +166,14 @@ export async function verifyProvenance(merkleRoot: string): Promise<Verification
       verified: true,
       merkleRoot,
       provenance,
-      message: "✅ Autenticidad confirmada. Esta imagen está registrada en ChainRight.",
+      message: "✅ Authenticity confirmed. This image is registered on ChainRight.",
     };
   }
 
   return {
     verified: false,
     merkleRoot,
-    message: "❌ Sin registro encontrado. Esta imagen no fue registrada en ChainRight.",
+    message: "❌ No record found. This image was not registered on ChainRight.",
   };
 }
 
@@ -229,8 +229,8 @@ export async function mintWithProvenance(
       sequenceNumber
     );
 
-    console.log("Transacción enviada:", tx.hash);
-    console.log("Esperando confirmación...");
+    console.log("Transaction sent:", tx.hash);
+    console.log("Waiting for confirmation...");
 
     // Esperar confirmación
     const receipt = await tx.wait();
@@ -238,7 +238,7 @@ export async function mintWithProvenance(
     if (!receipt) {
       return {
         success: false,
-        error: "No se obtuvo receipt de la transacción",
+        error: "Transaction receipt not obtained",
       };
     }
 
@@ -269,7 +269,7 @@ export async function mintWithProvenance(
   } catch (error: any) {
     return {
       success: false,
-      error: `Error minteando NFT: ${error.message}`,
+      error: `Error minting NFT: ${error.message}`,
     };
   }
 }

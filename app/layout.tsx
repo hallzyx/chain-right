@@ -6,8 +6,8 @@ import { ClientRoot } from "@/components/client-root";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ChainRight - Procedencia verificable para IA",
-  description: "Demostrá que sos el creador original de tus imágenes generadas por IA",
+  title: "ChainRight - Verifiable Provenance for AI",
+  description: "Prove you are the original creator of your AI-generated images",
 };
 
 /**
@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="dark">
+    <html lang="en" className="dark">
       <body className={`${inter.className} bg-[#070B1A] text-slate-50 min-h-screen`}>
         <ClientRoot>{children}</ClientRoot>
       </body>

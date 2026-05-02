@@ -29,11 +29,11 @@ export async function actionGenerateImage(
       providerAddress: "",
       model: "flux-turbo",
       prompt: "",
-      error: "El prompt no puede estar vacío",
+      error: "Prompt cannot be empty",
     };
   }
 
-  console.log("Generando imagen con prompt:", prompt);
+  console.log("Generating image with prompt:", prompt);
 
   // 1) Intentar con 0G providers disponibles
   const providers = await discoverProviders("text-to-image");
@@ -43,14 +43,14 @@ export async function actionGenerateImage(
       success: false,
       fallbackRequired: true,
       fallbackReason:
-        "No hay providers de text-to-image disponibles en 0G Compute en este momento.",
+        "No text-to-image providers available on 0G Compute right now.",
       source: "0g-compute",
       zkResKey: "",
       providerAddress: "",
       model: "flux-turbo",
       prompt,
       error:
-        "No hay providers de text-to-image disponibles en este momento",
+        "No text-to-image providers available at this moment",
     };
   }
 
@@ -82,7 +82,7 @@ export async function actionGenerateImageWithFallback(
       providerAddress: "openai",
       model: "gpt-image-1-mini",
       prompt: "",
-      error: "El prompt no puede estar vacío",
+      error: "Prompt cannot be empty",
     };
   }
 
@@ -108,7 +108,7 @@ export async function actionUploadImage(
       return {
         success: false,
         merkleRoot: "",
-        error: "Imagen inválida: payload vacío",
+        error: "Invalid image: empty payload",
       };
     }
 
@@ -120,7 +120,7 @@ export async function actionUploadImage(
       return {
         success: false,
         merkleRoot: "",
-        error: "Imagen inválida: base64 incompleto",
+        error: "Invalid image: incomplete base64",
       };
     }
 
@@ -130,7 +130,7 @@ export async function actionUploadImage(
       return {
         success: false,
         merkleRoot: "",
-        error: "Imagen inválida: no se pudo decodificar base64",
+        error: "Invalid image: could not decode base64",
       };
     }
 
@@ -139,19 +139,19 @@ export async function actionUploadImage(
       return {
         success: false,
         merkleRoot: "",
-        error: "La imagen es demasiado grande para el flujo demo. Generá una imagen más ligera.",
+        error: "Image too large for demo flow. Generate a lighter image.",
       };
     }
 
     const data = new Uint8Array(buffer);
 
-    console.log("Subiendo imagen a 0G Storage...");
+    console.log("Uploading image to 0G Storage...");
     return await uploadBuffer(data, fileExtension);
   } catch (error: any) {
     return {
       success: false,
       merkleRoot: "",
-      error: `Error en upload: ${error.message}`,
+      error: `Upload error: ${error.message}`,
     };
   }
 }
@@ -177,7 +177,7 @@ export async function actionComputeMerkleRoot(
   } catch (error: any) {
     return {
       success: false,
-      error: `Error calculando Merkle Root: ${error.message}`,
+      error: `Error computing Merkle Root: ${error.message}`,
     };
   }
 }
@@ -195,14 +195,14 @@ export async function actionMintNFT(
   if (!isContractConfigured()) {
     return {
       success: false,
-      error: "El contrato no está configurado. Primero deployá ChainRightERC721 y configurá NEXT_PUBLIC_CONTRACT_ADDRESS en .env",
+      error: "Contract not configured. Deploy ChainRightERC721 first and set NEXT_PUBLIC_CONTRACT_ADDRESS in .env",
     };
   }
 
   // Metadata URI por defecto para demo
   const metadataUri = `ipfs://chainright/${merkleRoot}`;
 
-  console.log("Minteando NFT...");
+  console.log("Minting NFT...");
   console.log("- Merkle Root:", merkleRoot);
   console.log("- ZG-Res-Key:", zkResKey);
   console.log("- Prompt:", prompt);
@@ -232,7 +232,7 @@ export async function actionVerifyImage(
     return {
       verified: false,
       merkleRoot: "",
-      message: `Error calculando hash: ${merkleResult.error}`,
+      message: `Error computing hash: ${merkleResult.error}`,
     };
   }
 
@@ -249,7 +249,7 @@ export async function actionVerifyImage(
   return {
     verified: false,
     merkleRoot,
-    message: `Hash calculado: ${merkleRoot}. El contrato no está configurado - no se puede verificar on-chain.`,
+    message: `Computed hash: ${merkleRoot}. Contract not configured - cannot verify on-chain.`,
   };
 }
 
@@ -264,7 +264,7 @@ export async function actionManualVerify(
     return {
       verified: false,
       merkleRoot,
-      message: "Merkle Root inválido o demasiado corto.",
+      message: "Invalid Merkle Root or too short.",
     };
   }
 
@@ -272,7 +272,7 @@ export async function actionManualVerify(
     return {
       verified: false,
       merkleRoot,
-      message: "El contrato no está configurado.",
+      message: "Contract not configured.",
     };
   }
 

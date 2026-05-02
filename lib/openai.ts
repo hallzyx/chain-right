@@ -23,7 +23,7 @@ export async function generateImageWithOpenAI(
       providerAddress: "openai",
       model: "gpt-image-1",
       prompt,
-      error: "OPENAI_API_KEY no configurada en el entorno",
+      error: "OPENAI_API_KEY not configured in the environment",
     };
   }
 

@@ -80,8 +80,8 @@ export function CertificateCard({
   return (
     <section className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-[#111A38]/90 to-[#1A0F35]/80 p-6 shadow-lg shadow-indigo-900/20">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-xl font-bold text-slate-100">Certificado de Autoría</h3>
-        <span className="rounded bg-green-500/15 px-2 py-1 text-xs font-semibold text-green-400">✅ Verificable</span>
+        <h3 className="text-xl font-bold text-slate-100">Certificate of Authorship</h3>
+        <span className="rounded bg-green-500/15 px-2 py-1 text-xs font-semibold text-green-400">✅ Verifiable</span>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[200px,1fr]">
@@ -89,7 +89,7 @@ export function CertificateCard({
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt="Obra certificada"
+              alt="Certified artwork"
               className="max-h-60 w-full object-contain"
             />
           ) : (
@@ -98,8 +98,8 @@ export function CertificateCard({
         </div>
 
         <div className="space-y-3 text-sm text-slate-300">
-          <InfoRow label="Autor" value={wallet ? shortenAddress(wallet) : "-"} />
-          <InfoRow label="Modelo" value={model} />
+          <InfoRow label="Author" value={wallet ? shortenAddress(wallet) : "-"} />
+          <InfoRow label="Model" value={model} />
           <InfoRow label="Token ID" value={tokenId || "-"} />
           <InfoRow label="Sequence" value={sequenceNumber || "-"} mono />
           <InfoRow label="Prompt" value={prompt} />
@@ -115,7 +115,7 @@ export function CertificateCard({
                   "bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30"
                 )}
               >
-                Ver Tx en ChainScan
+                Ver Tx on ChainScan
               </a>
             )}
             {nftUrl && (
@@ -128,7 +128,7 @@ export function CertificateCard({
                   "bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
                 )}
               >
-                Ver NFT en ChainScan
+                View NFT on ChainScan
               </a>
             )}
             {submissionUrl && (
@@ -141,7 +141,7 @@ export function CertificateCard({
                   "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
                 )}
               >
-                Ver Submission en StorageScan
+                View Submission on StorageScan
               </a>
             )}
             {storageScan && !submissionUrl && (
@@ -154,7 +154,7 @@ export function CertificateCard({
                   "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
                 )}
               >
-                Ver en StorageScan
+                View on StorageScan
               </a>
             )}
           </div>
@@ -171,12 +171,12 @@ export function CertificateCard({
                 "disabled:opacity-50 disabled:cursor-wait"
               )}
             >
-              {pdfLoading ? "⏳ Generando PDF..." : "📄 Descargar Certificado PDF"}
+              {pdfLoading ? "⏳ Generating PDF..." : "📄 Download Certificate PDF"}
             </button>
           </div>
 
           <details className="pt-2">
-            <summary className="cursor-pointer text-xs text-slate-500">Detalles técnicos (hashes)</summary>
+            <summary className="cursor-pointer text-xs text-slate-500">Technical Details (hashes)</summary>
             <div className="mt-2 space-y-2 rounded-lg border border-slate-700/50 bg-[#070B1A]/70 p-3 text-xs">
               <InfoRow label="Merkle Root" value={merkleRoot || "-"} mono />
               <InfoRow label="Tx Hash" value={txHash || "-"} mono />

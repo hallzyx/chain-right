@@ -43,7 +43,7 @@ export default function CreatePage() {
         setPendingPrompt(prompt);
         setFallbackReason(
           result.fallbackReason ||
-            "No hay providers de text-to-image en 0G en este momento."
+            "No text-to-image providers available on 0G at this time."
         );
         setShowFallbackModal(true);
         setStep("prompt");
@@ -51,7 +51,7 @@ export default function CreatePage() {
       }
 
       if (!result.success) {
-        setError(result.error || "Error desconocido");
+        setError(result.error || "Unknown error");
         setStep("prompt");
         return;
       }
@@ -59,7 +59,7 @@ export default function CreatePage() {
       setImageResult(result);
       setStep("generated");
     } catch (err: any) {
-      setError(err.message || "Error inesperado");
+      setError(err.message || "Unexpected error");
       setStep("prompt");
     }
   }
@@ -76,7 +76,7 @@ export default function CreatePage() {
       const result = await actionGenerateImageWithFallback(pendingPrompt);
 
       if (!result.success) {
-        setError(result.error || "Error en fallback OpenAI");
+        setError(result.error || "OpenAI fallback error");
         setStep("prompt");
         return;
       }
@@ -84,7 +84,7 @@ export default function CreatePage() {
       setImageResult(result);
       setStep("generated");
     } catch (err: any) {
-      setError(err.message || "Error inesperado en fallback");
+      setError(err.message || "Unexpected fallback error");
       setStep("prompt");
     }
   }
@@ -122,7 +122,7 @@ export default function CreatePage() {
       const result = await apiResp.json();
 
       if (!result.success) {
-        setError(result.error || "Error subiendo a Storage");
+        setError(result.error || "Error uploading to Storage");
         setStep("generated");
         return;
       }
@@ -130,7 +130,7 @@ export default function CreatePage() {
       setStorageResult(result);
       setStep("stored");
     } catch (err: any) {
-      setError(err.message || "Error inesperado");
+      setError(err.message || "Unexpected error");
       setStep("generated");
     }
   }
@@ -145,7 +145,7 @@ export default function CreatePage() {
 
     try {
       if (!storageResult.merkleRoot) {
-        setError("No hay Merkle Root disponible para mintear");
+        setError("No Merkle Root available for minting");
         setStep("stored");
         return;
       }
@@ -159,7 +159,7 @@ export default function CreatePage() {
       );
 
       if (!result.success) {
-        setError(result.error || "Error minteando NFT");
+        setError(result.error || "Error minting NFT");
         setStep("stored");
         return;
       }
@@ -172,7 +172,7 @@ export default function CreatePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           wallet: address,
-          title: "Obra generada en ChainRight",
+          title: "Artwork generated on ChainRight",
           prompt: imageResult.prompt,
           source: imageResult.source || "0g-compute",
           model: imageResult.model,
@@ -192,7 +192,7 @@ export default function CreatePage() {
 
       setStep("done");
     } catch (err: any) {
-      setError(err.message || "Error inesperado");
+      setError(err.message || "Unexpected error");
       setStep("stored");
     }
   }
@@ -212,20 +212,20 @@ export default function CreatePage() {
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">
-          Crear Obra
+          Create Artwork
         </h1>
         <p className="text-slate-400">
-          Generá una imagen con IA, almacenala en 0G, y minteá un NFT con procedencia verificable.
+          Generate an AI image, store it on 0G, and mint an NFT with verifiable provenance.
         </p>
       </div>
 
       {/* Steps Indicator */}
       <div className="flex items-center justify-center gap-4 mb-12">
-        <StepIndicator active={step === "prompt" || step === "generating" || step === "generated"} done={step === "generated" || step === "stored" || step === "done"} label="Generar" />
+        <StepIndicator active={step === "prompt" || step === "generating" || step === "generated"} done={step === "generated" || step === "stored" || step === "done"} label="Generate" />
         <div className="w-16 h-px bg-slate-700" />
-        <StepIndicator active={step === "uploading" || step === "stored"} done={step === "stored" || step === "done"} label="Almacenar" />
+        <StepIndicator active={step === "uploading" || step === "stored"} done={step === "stored" || step === "done"} label="Store" />
         <div className="w-16 h-px bg-slate-700" />
-        <StepIndicator active={step === "minting" || step === "done"} done={step === "done"} label="Mintear" />
+        <StepIndicator active={step === "minting" || step === "done"} done={step === "done"} label="Mint" />
       </div>
 
       {/* Error */}
@@ -239,7 +239,7 @@ export default function CreatePage() {
       {step === "prompt" && (
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8">
           <label className="block text-sm font-medium mb-3 text-slate-300">
-            Describí tu imagen
+            Describe your image
           </label>
           <textarea
             className={cn(
@@ -248,7 +248,7 @@ export default function CreatePage() {
               "focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50",
               "resize-none"
             )}
-            placeholder="Ej: portada de libro cyberpunk con un programador mirando al horizonte, estilo retro futurista..."
+            placeholder="e.g. cyberpunk book cover with a programmer looking at the horizon, retro-futuristic style..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
@@ -262,7 +262,7 @@ export default function CreatePage() {
                 : "bg-slate-800 text-slate-500 cursor-not-allowed"
             )}
           >
-            ✨ Generar Imagen
+            ✨ Generate Image
           </button>
 
           <p className="text-xs text-slate-600 mt-4 text-center">
@@ -275,7 +275,7 @@ export default function CreatePage() {
       {step === "generating" && (
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-16 text-center">
           <div className="text-5xl mb-6 animate-pulse">✨</div>
-          <p className="text-lg text-slate-300">Generando tu imagen...</p>
+          <p className="text-lg text-slate-300">Generating your image...</p>
           <p className="text-sm text-slate-500 mt-2">0G Compute + Flux Turbo</p>
         </div>
       )}
@@ -283,16 +283,16 @@ export default function CreatePage() {
       {step === "uploading" && (
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-16 text-center">
           <div className="text-5xl mb-6 animate-pulse">☁️</div>
-          <p className="text-lg text-slate-300">Almacenando en 0G Storage...</p>
-          <p className="text-sm text-slate-500 mt-2">Generando Merkle Root</p>
+          <p className="text-lg text-slate-300">Storing on 0G Storage...</p>
+          <p className="text-sm text-slate-500 mt-2">Generating Merkle Root</p>
         </div>
       )}
 
       {step === "minting" && (
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-16 text-center">
           <div className="text-5xl mb-6 animate-pulse">⛓️</div>
-          <p className="text-lg text-slate-300">Minteando NFT en 0G Chain...</p>
-          <p className="text-sm text-slate-500 mt-2">Esperando confirmación de bloque</p>
+          <p className="text-lg text-slate-300">Minting NFT on 0G Chain...</p>
+          <p className="text-sm text-slate-500 mt-2">Waiting for block confirmation</p>
         </div>
       )}
 
@@ -316,17 +316,17 @@ export default function CreatePage() {
           {/* Datos de Procedencia */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <span>📋</span> Datos de Procedencia
+              <span>📋</span> Provenance Data
             </h3>
             <div className="space-y-3 text-sm">
-              <DataRow label="Modelo" value={imageResult.model} />
+              <DataRow label="Model" value={imageResult.model} />
               <DataRow label="ZG-Res-Key" value={imageResult.zkResKey || "(no disponible)"} isHash />
               <DataRow label="Provider" value={imageResult.providerAddress} isHash />
               <DataRow
-                label="Fuente"
+                label="Source"
                 value={
                   imageResult.source === "openai-fallback"
-                    ? "OpenAI (fallback con consentimiento)"
+                    ? "OpenAI (fallback with consent)"
                     : "0G Compute"
                 }
               />
@@ -342,7 +342,7 @@ export default function CreatePage() {
                 "border-2 border-slate-700 text-slate-300 hover:border-slate-600"
               )}
             >
-              ← Volver
+              ← Back
             </button>
             <button
               onClick={handleUpload}
@@ -351,7 +351,7 @@ export default function CreatePage() {
                 "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25"
               )}
             >
-              ☁️ Guardar en 0G Storage
+              ☁️ Save to 0G Storage
             </button>
           </div>
         </div>
@@ -363,17 +363,17 @@ export default function CreatePage() {
           {/* Success */}
           <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">✅</div>
-            <p className="text-lg font-semibold text-green-400">Almacenado exitosamente</p>
+            <p className="text-lg font-semibold text-green-400">Successfully stored</p>
           </div>
 
           {/* Merkle Root */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <span>🔐</span> Merkle Root (Tu Identificador Único)
+              <span>🔐</span> Merkle Root (Your Unique Identifier)
             </h3>
             <p className="text-xs text-slate-500 mb-3">
-              Este es el hash único de tu imagen. Si cambias UN SOLO PÍXEL, este hash cambia completamente.
-              Guardalo — es la única forma de recuperar y verificar tu obra.
+              This is the unique hash of your image. If you change A SINGLE PIXEL, this hash changes completely.
+              Save it — it's the only way to retrieve and verify your artwork.
             </p>
             <div className="bg-slate-950 border border-slate-700 rounded-lg p-4">
               <code className="text-sm text-cyan-400 break-all">
@@ -391,7 +391,7 @@ export default function CreatePage() {
                 "border-2 border-slate-700 text-slate-300 hover:border-slate-600"
               )}
             >
-              ← Cancelar
+              ← Cancel
             </button>
             <button
               onClick={handleMint}
@@ -400,12 +400,12 @@ export default function CreatePage() {
                 "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25"
               )}
             >
-              ⛓️ Mintear NFT
+              ⛓️ Mint NFT
             </button>
           </div>
 
           <p className="text-xs text-slate-600 text-center">
-            Nota: Necesitás tener el contrato deployado y configurado en .env para mintear.
+            Note: You need the contract deployed and configured in .env to mint.
           </p>
         </div>
       )}
@@ -416,8 +416,8 @@ export default function CreatePage() {
           {/* Success */}
           <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl p-10 text-center">
             <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold mb-2">¡NFT Minteado Exitosamente!</h2>
-            <p className="text-slate-400">Tu obra ahora tiene procedencia verificable on-chain.</p>
+            <h2 className="text-2xl font-bold mb-2">NFT Minted Successfully!</h2>
+            <p className="text-slate-400">Your artwork now has verifiable on-chain provenance.</p>
           </div>
 
            {/* Resultado tangible */}
@@ -442,7 +442,7 @@ export default function CreatePage() {
               "border border-indigo-500/30 text-indigo-200 hover:border-violet-400 hover:text-violet-200 transition-all"
             )}
           >
-            Ver en Mis Obras
+            View in My Works
           </a>
 
           <button
@@ -452,7 +452,7 @@ export default function CreatePage() {
               "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25"
             )}
           >
-            🎨 Crear otra obra
+            🎨 Create Another
           </button>
         </div>
       )}
@@ -462,17 +462,17 @@ export default function CreatePage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4">
           <div className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-lg">
             <h3 className="mb-3 text-xl font-semibold text-slate-100">
-              No hay providers de text-to-image en 0G ahora
+              No text-to-image providers available on 0G right now
             </h3>
             <p className="mb-4 text-sm text-slate-400">
               {fallbackReason}
             </p>
             <p className="mb-6 text-sm text-slate-300">
-              Podemos usar <strong>OpenAI</strong> como fallback para generar la imagen,
-              y luego continuar igual con 0G Storage + mint en 0G testnet.
+              We can use <strong>OpenAI</strong> as a fallback to generate the image,
+              then continue with 0G Storage + mint on 0G testnet.
               <br />
               <span className="text-slate-500">
-                El fallback solo se ejecuta si vos lo aceptás explícitamente.
+                The fallback only runs if you explicitly accept it.
               </span>
             </p>
 
@@ -484,7 +484,7 @@ export default function CreatePage() {
                   "hover:border-slate-600"
                 )}
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={handleAcceptFallback}
@@ -494,7 +494,7 @@ export default function CreatePage() {
                   "hover:from-cyan-400 hover:to-blue-500"
                 )}
               >
-                Aceptar fallback y generar
+                Accept fallback and generate
               </button>
             </div>
           </div>

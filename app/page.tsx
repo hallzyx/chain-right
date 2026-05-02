@@ -17,15 +17,15 @@ export default function HomePage() {
 
         <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
           <span className="bg-gradient-to-r from-indigo-300 via-violet-400 to-indigo-500 bg-clip-text text-transparent">
-            Procedencia verificable
+            Verifiable Provenance
           </span>
           <br />
-          para imágenes de IA
+          for AI Images
         </h1>
 
         <p className="text-xl text-slate-400 mb-10 leading-relaxed">
-          Generaste una imagen con IA? Ahora podés demostrar que sos el creador original.
-          ChainRight le da un registro on-chain, inmutable e irrefutable a cada obra.
+          You generated an AI image? Now you can prove you are the original creator.
+          ChainRight gives every artwork an on-chain, immutable, and irrefutable record.
         </p>
 
         {/* CTA Buttons */}
@@ -41,7 +41,7 @@ export default function HomePage() {
               "transform hover:-translate-y-0.5"
             )}
           >
-            🎨 Crear Obra
+            🎨 Create Artwork
           </Link>
           <Link
             href="/verify"
@@ -52,7 +52,7 @@ export default function HomePage() {
               "transform hover:-translate-y-0.5"
             )}
           >
-            🔍 Verificar Autenticidad
+            🔍 Verify Authenticity
           </Link>
         </div>
       </div>
@@ -62,45 +62,45 @@ export default function HomePage() {
         <FeatureCard
           icon="⛓️"
           title="On-Chain Registry"
-          description="Cada obra queda registrada en 0G Chain. Inmutable. Irrefutable. Nadie puede borrar ni modificar el registro."
+          description="Every artwork is recorded on 0G Chain. Immutable. Irrefutable. No one can delete or modify the record."
         />
         <FeatureCard
           icon="🔑"
           title="Merkle Proof"
-          description="Si modificás UN SOLO PÍXEL de la imagen, el Merkle Root cambia completamente. No se puede falsificar."
+          description="If you change A SINGLE PIXEL of the image, the Merkle Root changes completely. Forgery is impossible."
         />
         <FeatureCard
           icon="✅"
           title="TEE-Verified"
-          description="La inferencia se ejecuta en Trusted Execution Environment. Podés demostrar que la imagen REALMENTE viene de ese prompt."
+          description="Inference runs in a Trusted Execution Environment. You can prove the image ACTUALLY came from that prompt."
         />
       </div>
 
       {/* How it works */}
       <div className="mt-24 max-w-4xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12">
-          Cómo funciona
+          How It Works
         </h2>
         <div className="space-y-8">
           <StepCard
             number={1}
-            title="Generás"
-            description="Escribís tu prompt y generás la imagen via 0G Compute (Flux Turbo, TEE-verified). Cada inferencia tiene un ZG-Res-Key único."
+            title="Generate"
+            description="Write your prompt and generate the image via 0G Compute (Flux Turbo, TEE-verified). Every inference has a unique ZG-Res-Key."
           />
           <StepCard
             number={2}
-            title="Almacenás"
-            description="Subís la imagen a 0G Storage. Se genera un Merkle Root — el hash único de tu obra. Si cambia un píxel, cambia el hash."
+            title="Store"
+            description="Upload the image to 0G Storage. A Merkle Root is generated — the unique hash of your artwork. Change one pixel, change the hash."
           />
           <StepCard
             number={3}
-            title="Registrás"
-            description="Minteás un NFT en 0G Chain que guarda: Merkle Root + ZG-Res-Key + Prompt + Timestamp + Tu wallet. Todo on-chain."
+            title="Register"
+            description="Mint an NFT on 0G Chain storing: Merkle Root + ZG-Res-Key + Prompt + Timestamp + Your wallet. All on-chain."
           />
           <StepCard
             number={4}
-            title="Verificás"
-            description="Cualquier persona, en cualquier momento, puede subir la imagen y verificar. El sistema calcula el hash y busca on-chain."
+            title="Verify"
+            description="Anyone, anytime, can upload the image and verify. The system computes the hash and looks it up on-chain."
           />
         </div>
       </div>
@@ -109,10 +109,10 @@ export default function HomePage() {
       <div className="mt-24 text-center max-w-2xl mx-auto">
         <div className="bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border border-violet-500/20 rounded-2xl p-8">
           <p className="text-4xl mb-4">🤯</p>
-          <h3 className="text-xl font-bold mb-3">El Wow Moment</h3>
+          <h3 className="text-xl font-bold mb-3">The Wow Moment</h3>
           <p className="text-slate-400">
-            Modificamos <strong>UN SOLO PÍXEL</strong> de tu imagen. El Merkle Root cambia completamente.
-            La verificación falla. Esto es lo que hace imposible falsificar una obra registrada en ChainRight.
+            We change <strong>A SINGLE PIXEL</strong> of your image. The Merkle Root changes completely.
+            The verification fails. This is what makes it impossible to forge a work registered on ChainRight.
           </p>
         </div>
       </div>

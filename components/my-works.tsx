@@ -26,7 +26,7 @@ return (
       <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-slate-900 shadow-2xl">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-100">Detalle de Obra</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Work Details</h2>
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
@@ -89,7 +89,7 @@ export function MyWorks() {
     <>
       <section className="mt-12">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-100">Mis Obras</h2>
+          <h2 className="text-2xl font-bold text-slate-100">My Works</h2>
           <span className="text-xs text-slate-500">
             {address ? shortenAddress(address) : ""}
           </span>
@@ -97,13 +97,13 @@ export function MyWorks() {
 
         {loading && (
           <div className="rounded-xl border border-indigo-500/20 bg-[#111A38]/60 p-4 text-sm text-slate-400">
-            Cargando obras...
+            Loading works...
           </div>
         )}
 
         {!loading && works.length === 0 && (
           <div className="rounded-xl border border-indigo-500/20 bg-[#111A38]/60 p-6 text-sm text-slate-400">
-            Todavía no tenés obras guardadas en este MVP.
+            You don't have any saved works in this MVP yet.
           </div>
         )}
 

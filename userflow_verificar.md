@@ -1,144 +1,208 @@
-# Userflow — Verificar Autenticidad
+# Userflow — Verify Authenticity
 
 ## Actors
 
-- Usuario verificador (cualquier persona)
+- Verifier user (anyone)
 - 0G Storage Network
-- 0G Chain (contrato ChainRightERC721)
+- 0G Chain (ChainRightERC721 contract)
 
 ## Preconditions
 
-- Usuario tiene la imagen a verificar (puede ser la original o una copia)
-- Contrato ChainRightERC721 está deployado en 0G Testnet
+- User has the image to verify (original or copy)
+- ChainRightERC721 contract deployed on 0G Testnet (v2 with `sequenceNumber` field)
 
 ## Flow
 
-### Paso 1: Usuario sube la imagen
+### Step 1: User uploads the image
 
-1. Usuario navega a la página **"Verificar Autenticidad"**
-2. Usuario clickea en **"Subir Imagen"** o arrastra y suelta el archivo
-3. Sistema muestra el preview de la imagen
-
-**System response:**
-- Valida que el archivo sea una imagen (png, jpg, webp)
-- Muestra botón **"Verificar"** habilitado
-
-### Paso 2: Calcular Merkle Root localmente
-
-Usuario clickea **"Verificar"**
+1. User navigates to the **"Verify Authenticity"** page
+2. User clicks **"Click to upload an image"** or drag-and-drops the file
+3. System shows the image preview
 
 **System response:**
-- Auto-activa `merkle-verification`:
-  1. Escribe la imagen en un archivo temporal
-  2. Crea `ZgFile` desde el path
-  3. Genera Merkle Tree: `const [tree, err] = await file.merkleTree()`
-  4. Obtiene Root Hash: `const calculatedRoot = tree!.rootHash()`
-  5. **Cierra el file**: `await file.close()`
-  6. Limpia el archivo temporal
-- **Importante**: El Merkle Root es ÚNICO por contenido. Si cambias UN SOLO PÍXEL, el hash cambia completamente.
+- Accepts any image format (PNG, JPG, WebP)
+- Shows **"Verify Authenticity"** button enabled
 
-### Paso 3: Buscar en el contrato on-chain
+### Step 2: Real-time 5-step analysis
 
-**System response:**
-- Auto-activa `interact-contract`:
-  1. Crea instancia del contrato `ChainRightERC721` (read-only, no necesita wallet)
-  2. Llama a la función de consulta: `const record = await contract.getProvenance(calculatedRoot)`
-  3. O si el mapping es por tokenId: busca todos los tokens y compara el merkleRoot
+User clicks **"Verify Authenticity"**
 
-### Paso 4: Mostrar resultado
+**System response — Live progress bar with 5 sequential phases:**
 
-#### Caso A: ✅ Autenticidad Confirmada
+| Phase | What happens | Live data shown |
+|---|---|---|
+| **Step 1: Reading image file** | Reads the file buffer. | File size detected (e.g. `45.2 KB`, `120 bytes`). |
+| **Step 2: Computing cryptographic fingerprint (Merkle Tree)** | Creates a `ZgFile` from temp file, generates Merkle Tree via `file.merkleTree()`, extracts `tree.rootHash()`, closes the file, cleans up temp file. | **Root hash** displayed character by character. |
+| **Step 3: Connecting to 0G Chain** | Creates `ethers.JsonRpcProvider` (read-only, no wallet), fetches live network data. | RPC URL (`https://evmrpc-testnet.0g.ai`), Chain ID (`16602`), current block number from the live provider. |
+| **Step 4: Querying smart contract** | Calls `getProvenance(merkleRoot)` on the contract (read-only). | Contract address (shortened), function selector shown (e.g. `getProvenance(0xabc12345...)`). |
+| **Step 5: Result** | Interprets the contract response. | ✅ Match or ❌ No match. |
 
-Si se encontró un registro con ese Merkle Root:
+- Each phase transitions with a stagger animation for demo effect.
+- A progress bar fills from 0% to 100% as phases complete.
+- **Important**: The Merkle Root is UNIQUE per content. If you change A SINGLE PIXEL, the hash changes completely.
 
-**System response:**
-- Muestra pantalla verde con check grande:
-  - ✅ **AUTENTICIDAD CONFIRMADA**
-  - Esta imagen está registrada en ChainRight
-- Muestra todos los datos de procedencia on-chain:
-  - **Token ID**: `<tokenId>`
-  - **Creador Original**: `<wallet_address>`
-  - **Fecha de Registro**: `<timestamp del bloque>`
-  - **Prompt Original**: `<texto del prompt>`
-  - **Modelo de IA**: `<Flux Turbo>`
-  - **Merkle Root**: `<hash>` (coincide)
-  - **ZG-Res-Key**: `<id de la inferencia>`
-- Link para ver la transacción en el explorador
+### Step 3: Result display with collapsible analysis
 
-#### Caso B: ❌ No hay registro
+When the result phase completes, the 5 steps **collapse into an accordion**:
 
-Si NO se encontró ese Merkle Root en el contrato:
+- Accordion header: **"▼ Show analysis process"** with a `5/5 completed` badge.
+- User can expand to review all 5 steps with their live data.
+- Progress bar shows 100% in green.
 
-**System response:**
-- Muestra pantalla roja:
-  - ❌ **Sin Registro Encontrado**
-  - Esta imagen no existe en los registros de ChainRight
-- Explicación para el usuario:
-  - El creador nunca la registró en ChainRight
-  - O es una imagen GENERADA DESPUÉS y el hash no coincide
-  - O fue modificada (aunque sea un píxel)
+---
 
-### Paso 5: Wow Moment - Modificando la imagen
+#### Case A: ✅ Authenticity Confirmed
 
-> Para la demo, vamos a mostrar esto explícitamente.
+If a record with that Merkle Root was found:
 
-**System response (opcional para demo):**
-- Muestra botón: **"Modificar un píxel y volver a verificar"**
-- Cuando el usuario clickea:
-  1. Modifica UN SOLO PÍXEL de la imagen (cambia un valor RGB)
-  2. Vuelve a calcular el Merkle Root
-  3. Muestra:
-     - Hash ANTES: `abc123...`
-     - Hash AHORA: `xyz789...`
-  4. Busca el nuevo hash → NO ENCONTRADO
-- **Mensaje impactante para el jurado:**
-  > "Mira esto. Cambiamos UN SOLO PÍXEL. El Merkle Root cambia completamente. 
-  > Esto es lo que hace imposible falsificar una obra registrada en ChainRight."
+**Main result card:**
+- Green card with large checkmark
+- **"Authenticity Confirmed"**
+- Explanatory message: "This image is registered on 0G Chain."
+
+**On-chain provenance data section:**
+
+| Field | Source |
+|---|---|
+| **Creator** | `record.creator` (wallet address, shortened) |
+| **AI Model** | `record.model` (e.g. "Flux Turbo") |
+| **Prompt** | `record.prompt` (full text) |
+| **ZK Resource Key** | `record.zkResKey` |
+| **Sequence (txSeq)** | `record.sequenceNumber` |
+| **Timestamp** | `record.timestamp` formatted as locale date/time |
+
+Plus:
+- Contract address and block number reference in the provenance header.
+- **"View on StorageScan"** link → `https://storagescan-galileo.0g.ai/submission/{sequenceNumber}`
+- **"Download Certificate PDF"** button → generates a styled PDF with all provenance data, image, wallet, sequence number, and timestamp.
+
+**Cryptographic Fingerprint section:**
+- Shows the full Merkle Root in a code block.
+- Note: "Unique hash. If you change A SINGLE PIXEL, it changes completely."
+
+---
+
+#### Case B: ❌ No Record Found
+
+If no record exists for that Merkle Root:
+
+**Main result card:**
+- Red card with large X
+- **"No Record Found"**
+- Explanation for the user:
+  - The creator never registered it on ChainRight
+  - Or the image was generated AFTER the on-chain timestamp and doesn't match
+  - Or it was modified (even by a single pixel)
+
+### Step 4: Wow Moment — "Change ONE PIXEL"
+
+After any result (match or no match), a button appears:
+> **"🤯 View Wow Moment: Change ONE PIXEL"**
+
+When clicked, it opens the **WowMoment** component:
+
+**What happens:**
+1. Modifies **1 byte** of the image file (`modifyOnePixel(originalData)`)
+2. Recomputes the Merkle Root of the modified version
+
+**Split-screen visual comparison:**
+| Left (Original) | Right (Modified) |
+|---|---|
+| Label: "ORIGINAL" (green) | Label: "MODIFIED" (red) |
+| Green pulsing dot overlay | Pink pulsing dot overlay |
+
+- A **scan line animation** sweeps across both images simultaneously.
+
+**Hash diff — character by character:**
+| Left (Original Hash) | Right (Modified Hash) |
+|---|---|
+| Characters displayed in a grid | Same grid |
+| Green background = character matches | Red background = character differs |
+
+- Legend: green = match, red = different.
+
+**Stats section (3 columns):**
+
+| Chars Compared | Matching Chars | Cryptographic Similarity |
+|---|---|---|
+| Total character count | Count of matching characters | Animated counter that drops from ~XX% toward **0%** |
+
+**Conclusion card:**
+> "The hashes are **COMPLETELY DIFFERENT**"
+>
+> "This is why it is cryptographically impossible to forge a work registered on ChainRight. If you change a single byte of the file, the resulting hash won't match any on-chain record."
+>
+> "This is how SHA-256 + Merkle Trees work. The blockchain doesn't lie."
+
+### Step 5: Manual verification
+
+Below the upload section (visible when no verification is in progress):
+
+> **"📜 Have a PDF certificate?"** — collapsible section.
+
+When expanded:
+- Text input field: **"Paste your Merkle Root"** (prefix `0x...`)
+- **"Verify"** button
+- Calls `getProvenance(merkleRoot)` directly on the contract (no image needed)
+- Shows result inline:
+  - ✅ Confirmed: displays creator, model, and sequence number
+  - ❌ No record: shows error message
 
 ## Acceptance Criteria
 
-- [ ] Usuario puede subir cualquier imagen
-- [ ] Sistema calcula el Merkle Root localmente usando 0G SDK
-- [ ] `ZgFile` se cierra correctamente
-- [ ] Sistema consulta el contrato ChainRightERC721 en 0G Chain
-- [ ] Si existe: muestra todos los datos de procedencia
-- [ ] Si no existe: muestra mensaje claro
-- [ ] Demo: modificar un píxel cambia completamente el hash (wow moment)
+- [ ] User can upload any image
+- [ ] System computes the Merkle Root locally using 0G SDK
+- [ ] `ZgFile` is closed correctly in a `finally` block
+- [ ] System queries `getProvenance()` on ChainRightERC721 v2 on 0G Chain
+- [ ] 5-step analysis shows live on-chain data (file size, root hash, RPC URL, chain ID, block number, contract address)
+- [ ] When result appears, steps collapse into an accordion ("Show analysis process ▼")
+- [ ] If verified: shows full provenance data (creator, model, prompt, ZK Res Key, sequence number, timestamp)
+- [ ] If verified: shows "View on StorageScan" link and "Download Certificate PDF" button
+- [ ] If not verified: shows "No Record Found" with clear explanation
+- [ ] Wow Moment: modifying 1 byte changes the hash completely
+- [ ] Wow Moment: split-screen comparison with scan line animation
+- [ ] Wow Moment: character-by-character hash diff (green = match, red = different)
+- [ ] Wow Moment: cryptographic similarity counter animates to 0%
+- [ ] Manual verification: paste Merkle Root and get instant result
 
-## Datos que se guardan On-Chain
+## On-Chain Data (ChainRightERC721 v2)
 
-Por cada NFT minteado, el contrato guarda:
+For each minted NFT, the contract stores:
 
 ```solidity
 struct ProvenanceRecord {
-    bytes32 merkleRoot;      // Hash único de la imagen en 0G Storage
-    string zkResKey;         // ID único de la inferencia en 0G Compute
-    string prompt;           // Prompt exacto usado
-    string model;            // Modelo de IA (ej: "Flux Turbo")
-    uint256 timestamp;       // Bloque cuando se minteó
-    address creator;         // Wallet del creador original
-    bool exists;             // Flag de existencia
+    bytes32 merkleRoot;        // Unique hash of the image in 0G Storage
+    string zkResKey;           // Unique ID of the inference in 0G Compute
+    string prompt;             // Exact prompt used
+    string model;              // AI model (e.g. "Flux Turbo")
+    string sequenceNumber;     // txSeq from 0G Storage — links to storagescan-galileo
+    uint256 timestamp;         // Block timestamp when minted
+    address creator;           // Original creator's wallet
+    bool exists;               // Existence flag
 }
 
 // Mapping: merkleRoot => ProvenanceRecord
 mapping(bytes32 => ProvenanceRecord) public records;
 
-// Mapping: tokenId => ProvenanceRecord (para ERC-721)
+// Mapping: tokenId => merkleRoot (for ERC-721 lookup)
 mapping(uint256 => bytes32) public tokenToRoot;
+
+// Reverse lookup: creator => [merkleRoots]
+mapping(address => bytes32[]) public creatorToRoots;
 ```
 
-## Por qué esto funciona
+## Why This Works
 
-| Attack vector | Qué pasa |
+| Attack vector | What happens |
 |---|---|
-| Alguien roba tu imagen, la sube como propia | Su Merkle Root es el MISMO, pero el `creator` on-chain es TU wallet. El timestamp es ANTERIOR. |
-| Alguien genera una imagen con el MISMO prompt | Flux Turbo (y cualquier modelo moderno) tiene aleatoriedad. Cada generación es distinta. Merkle Root distinto. |
-| Alguien modifica UN PÍXEL de tu imagen | Merkle Root cambia COMPLETAMENTE. No coincide con ningún registro. |
-| Alguien intenta mintir la fecha | El timestamp es el del BLOQUE en 0G Chain. Inmutable. Irrefutable. |
+| Someone steals your image, uploads it as their own | Their Merkle Root is the SAME, but the `creator` on-chain is YOUR wallet. The timestamp is EARLIER. |
+| Someone generates an image with the SAME prompt | Flux Turbo (and any modern model) has randomness. Each generation is different. Merkle Root is different. |
+| Someone modifies ONE PIXEL of your image | Merkle Root changes COMPLETELY. Does not match any record. |
+| Someone tries to forge the date | The timestamp is the BLOCK timestamp on 0G Chain. Immutable. Irrefutable. |
 
 ## Demo Happy Path Only
 
-No implementar:
-- Verificación por ZG-Res-Key (solo por Merkle Root para demo)
-- Paginación de registros
-- Filtros por fecha/creator
+Do not implement:
+- Verification by ZG-Res-Key (only by Merkle Root for demo)
+- Record pagination
+- Filters by date/creator

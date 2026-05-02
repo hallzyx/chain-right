@@ -18,13 +18,13 @@ const { ethers } = hre;
 
 async function main() {
   console.log("========================================");
-  console.log("Deployando ChainRightERC721...");
+  console.log("Deploying ChainRightERC721...");
   console.log("========================================");
 
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deployando con la wallet:", deployer.address);
-  console.log("Balance del deployer:", ethers.formatEther(await deployer.provider.getBalance(deployer.address)));
+  console.log("Deploying with wallet:", deployer.address);
+  console.log("Deployer balance:", ethers.formatEther(await deployer.provider.getBalance(deployer.address)));
 
   // Deploy del contrato
   const ChainRightERC721 = await ethers.getContractFactory("ChainRightERC721");
@@ -35,20 +35,20 @@ async function main() {
   const address = await chainRight.getAddress();
 
   console.log("");
-  console.log("✅ Deploy exitoso!");
+  console.log("✅ Deployment successful!");
   console.log("");
   console.log("Contract Address:", address);
   console.log("");
   console.log("========================================");
-  console.log("Próximos pasos:");
+  console.log("Next steps:");
   console.log("========================================");
-  console.log("1. Copiá esta address en tu .env:");
+  console.log("1. Copy this address to your .env:");
   console.log("   NEXT_PUBLIC_CONTRACT_ADDRESS=" + address);
   console.log("");
-  console.log("2. Verificá el contrato en el explorer:");
+  console.log("2. Verify the contract on the explorer:");
   console.log("   https://chainscan-galileo.0g.ai/verifyContract");
   console.log("");
-  console.log("3. Probá mintar tu primer NFT!");
+  console.log("3. Try minting your first NFT!");
   console.log("");
 }
 

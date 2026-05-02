@@ -138,8 +138,8 @@ contract ChainRightERC721 is ERC721, Ownable {
         string calldata model_,
         string calldata sequenceNumber_
     ) public {
-        require(!records[merkleRoot_].exists, "ChainRight: Ya registrada");
-        require(merkleRoot_ != bytes32(0), "ChainRight: Merkle Root invalido");
+        require(!records[merkleRoot_].exists, "ChainRight: Already registered");
+        require(merkleRoot_ != bytes32(0), "ChainRight: Invalid Merkle Root");
 
         uint256 tokenId = _tokenIdCounter.current();
 
@@ -166,16 +166,16 @@ contract ChainRightERC721 is ERC721, Ownable {
      * @dev Setea la metadata URI para un token (después de subir JSON a Storage).
      */
     function setTokenMetadataUri(uint256 tokenId, string calldata metadataUri) public {
-        require(_exists(tokenId), "ChainRight: Token no existe");
+        require(_exists(tokenId), "ChainRight: Token does not exist");
         require(
             ownerOf(tokenId) == msg.sender || owner() == msg.sender,
-            "ChainRight: Sin permiso"
+            "ChainRight: Not authorized"
         );
         _tokenMetadataUris[tokenId] = metadataUri;
     }
 
     function tokenMetadataUri(uint256 tokenId) public view returns (string memory) {
-        require(_exists(tokenId), "ChainRight: Token no existe");
+        require(_exists(tokenId), "ChainRight: Token does not exist");
         return _tokenMetadataUris[tokenId];
     }
 
@@ -223,7 +223,7 @@ contract ChainRightERC721 is ERC721, Ownable {
             bool exists
         )
     {
-        require(_exists(tokenId), "ChainRight: Token no existe");
+        require(_exists(tokenId), "ChainRight: Token does not exist");
         bytes32 root = tokenToRoot[tokenId];
         return getProvenance(root);
     }
@@ -233,7 +233,7 @@ contract ChainRightERC721 is ERC721, Ownable {
     }
 
     function creatorWork(address creator, uint256 index) public view returns (bytes32) {
-        require(index < creatorToRoots[creator].length, "ChainRight: Indice fuera de rango");
+        require(index < creatorToRoots[creator].length, "ChainRight: Index out of range");
         return creatorToRoots[creator][index];
     }
 
@@ -243,7 +243,7 @@ contract ChainRightERC721 is ERC721, Ownable {
      *      Si no, genera metadata dinámica on-chain con TODOS los atributos.
      */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_exists(tokenId), "ChainRight: Token no existe");
+        require(_exists(tokenId), "ChainRight: Token does not exist");
 
         // 1. Primero: intentar con metadata URI guardada
         string memory savedUri = _tokenMetadataUris[tokenId];

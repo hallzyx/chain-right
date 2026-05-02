@@ -141,8 +141,8 @@ export default function VerifyPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Verificar Autenticidad</h1>
-        <p className="text-slate-400 max-w-md mx-auto">Subí una imagen. Calculamos su huella criptográfica y consultamos la blockchain de 0G en tiempo real.</p>
+        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Verify Authenticity</h1>
+        <p className="text-slate-400 max-w-md mx-auto">Upload an image. We compute its cryptographic fingerprint and query the 0G blockchain in real time.</p>
       </div>
 
       {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-8"><p className="text-red-400 text-sm">{error}</p></div>}
@@ -152,8 +152,8 @@ export default function VerifyPage() {
         <div onClick={() => fileInputRef.current?.click()} className={cn("border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-300","border-slate-700/80 hover:border-cyan-500/50 hover:bg-slate-900/50","group")}>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           <div className="text-6xl mb-5 group-hover:scale-110 transition-transform">🖼️</div>
-          <p className="text-lg font-medium text-slate-300 mb-2 group-hover:text-cyan-300">Click para subir una imagen</p>
-          <p className="text-sm text-slate-500">PNG, JPG, WebP — cualquier formato</p>
+          <p className="text-lg font-medium text-slate-300 mb-2 group-hover:text-cyan-300">Click to upload an image</p>
+          <p className="text-sm text-slate-500">PNG, JPG, WebP — any format</p>
         </div>
       )}
 
@@ -161,8 +161,8 @@ export default function VerifyPage() {
         <div className="space-y-6">
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden"><img src={uploadedImage} alt="" className="w-full h-auto max-h-80 object-contain" /></div>
           <div className="flex gap-4">
-            <button onClick={handleReset} className="flex-1 py-4 rounded-xl font-semibold border-2 border-slate-700 text-slate-300 hover:border-slate-600">← Cambiar</button>
-            <button onClick={handleVerify} className="flex-1 py-4 rounded-xl font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25">🔍 Verificar Autenticidad</button>
+            <button onClick={handleReset} className="flex-1 py-4 rounded-xl font-semibold border-2 border-slate-700 text-slate-300 hover:border-slate-600">← Change</button>
+            <button onClick={handleVerify} className="flex-1 py-4 rounded-xl font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25">🔍 Verify Authenticity</button>
           </div>
         </div>
       )}
@@ -173,7 +173,7 @@ export default function VerifyPage() {
           {/* Barra de progreso */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-slate-400">Progreso del análisis</span>
+              <span className="text-xs text-slate-400">Analysis progress</span>
               <span className="text-xs font-mono text-cyan-400">{progressPercent()}%</span>
             </div>
             <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -191,16 +191,16 @@ export default function VerifyPage() {
           {/* Acordeón del proceso */}
           <button onClick={() => setShowAnalysis(!showAnalysis)} className={cn("w-full flex items-center justify-between rounded-xl border px-4 py-3 transition-colors", showAnalysis ? "border-cyan-500/30 bg-cyan-500/5" : "border-slate-700/50 bg-slate-900/30 hover:border-slate-600/50")}>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-300">{showAnalysis ? "🔽" : "▶"} Mostrar proceso de análisis</span>
-              <span className="text-[10px] font-mono text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">5/5 completado</span>
+              <span className="text-sm text-slate-300">{showAnalysis ? "🔽" : "▶"} Show analysis process</span>
+              <span className="text-[10px] font-mono text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">5/5 completed</span>
             </div>
-            <span className="text-xs text-slate-500">{showAnalysis ? "Ocultar ▲" : "Expandir ▼"}</span>
+            <span className="text-xs text-slate-500">{showAnalysis ? "Hide ▲" : "Expand ▼"}</span>
           </button>
 
           {showAnalysis && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="mb-1">
-                <div className="flex items-center justify-between mb-1"><span className="text-xs text-slate-500">Análisis completado</span><span className="text-xs font-mono text-green-400">100%</span></div>
+                <div className="flex items-center justify-between mb-1"><span className="text-xs text-slate-500">Analysis complete</span><span className="text-xs font-mono text-green-400">100%</span></div>
                 <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full w-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full" /></div>
               </div>
               <div className="space-y-4"><AnalysisSteps trace={trace} verificationResult={verificationResult} statusFor={() => "done" as const} /></div>
@@ -210,14 +210,14 @@ export default function VerifyPage() {
           {/* Resultado principal */}
           <div className={cn("rounded-2xl p-8 text-center border", verificationResult.verified ? "bg-green-500/10 border-green-500/30 shadow-lg shadow-green-500/10" : "bg-red-500/5 border-red-500/20")}>
             <div className="text-6xl mb-4">{verificationResult.verified ? "✅" : "❌"}</div>
-            <h2 className={cn("text-2xl font-bold mb-2", verificationResult.verified ? "text-green-400" : "text-red-400")}>{verificationResult.verified ? "Autenticidad Confirmada" : "Sin Registro Encontrado"}</h2>
+            <h2 className={cn("text-2xl font-bold mb-2", verificationResult.verified ? "text-green-400" : "text-red-400")}>{verificationResult.verified ? "Authenticity Confirmed" : "No Record Found"}</h2>
             <p className="text-slate-400 text-sm">{verificationResult.message}</p>
           </div>
 
           {/* Merkle Root */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
-            <h3 className="font-semibold mb-3 text-slate-200">🔐 Huella Criptográfica (Merkle Root)</h3>
-            <p className="text-xs text-slate-500 mb-3">Hash único. Si cambiás UN SOLO PÍXEL, cambia por completo.</p>
+            <h3 className="font-semibold mb-3 text-slate-200">🔐 Cryptographic Fingerprint (Merkle Root)</h3>
+            <p className="text-xs text-slate-500 mb-3">Unique hash. If you change A SINGLE PIXEL, it changes completely.</p>
             <div className="bg-slate-950 border border-slate-700 rounded-lg p-4"><code className="text-sm text-cyan-400 break-all font-mono">{verificationResult.merkleRoot}</code></div>
           </div>
 
@@ -225,32 +225,32 @@ export default function VerifyPage() {
           {verificationResult.verified && verificationResult.provenance && (
             <>
               <div className="bg-gradient-to-br from-indigo-500/5 to-cyan-500/5 border border-indigo-500/20 rounded-2xl p-6">
-                <h3 className="font-bold text-lg mb-1 text-slate-100">⛓️ Datos de Procedencia On-Chain</h3>
+                <h3 className="font-bold text-lg mb-1 text-slate-100">⛓️ On-Chain Provenance Data</h3>
                 <p className="text-xs text-slate-500 mb-5">
-                  Grabados de forma inmutable en{" "}
+                  Immutably recorded on{" "}
                   <code className="text-[11px] text-cyan-400 font-mono bg-slate-800 px-1.5 py-0.5 rounded">{shortenAddress(trace.contractAddress || "")}</code> · Bloque #{trace.blockNumber?.toLocaleString() || "?"}
                 </p>
                 <div className="grid gap-3 text-sm">
-                  <DataRow label="Creador" value={shortenAddress(verificationResult.provenance.creator)} isHash />
-                  <DataRow label="Modelo IA" value={verificationResult.provenance.model} />
+                  <DataRow label="Creator" value={shortenAddress(verificationResult.provenance.creator)} isHash />
+                  <DataRow label="AI Model" value={verificationResult.provenance.model} />
                   <DataRow label="Prompt" value={verificationResult.provenance.prompt} />
                   <DataRow label="ZK Resource Key" value={verificationResult.provenance.zkResKey || "-"} isHash />
                   <DataRow label="Sequence (txSeq)" value={verificationResult.provenance.sequenceNumber || "-"} mono />
-                  <DataRow label="Timestamp" value={new Date(Number(verificationResult.provenance.timestamp) * 1000).toLocaleString("es-AR")} />
+                  <DataRow label="Timestamp" value={new Date(Number(verificationResult.provenance.timestamp) * 1000).toLocaleString("en-US")} />
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {verificationResult.provenance.sequenceNumber && (
-                    <a href={`https://storagescan-galileo.0g.ai/submission/${verificationResult.provenance.sequenceNumber}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-2 text-xs font-semibold bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30">☁️ Ver en StorageScan</a>
+                    <a href={`https://storagescan-galileo.0g.ai/submission/${verificationResult.provenance.sequenceNumber}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-2 text-xs font-semibold bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30">☁️ View on StorageScan</a>
                   )}
                 </div>
               </div>
-              <button onClick={handleDownloadPdf} disabled={pdfLoading} className={cn("w-full rounded-xl py-3.5 text-sm font-semibold border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20", "disabled:opacity-50")}>{pdfLoading ? "⏳ Generando..." : "📄 Descargar Certificado PDF"}</button>
+              <button onClick={handleDownloadPdf} disabled={pdfLoading} className={cn("w-full rounded-xl py-3.5 text-sm font-semibold border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20", "disabled:opacity-50")}>{pdfLoading ? "⏳ Generating..." : "📄 Download Certificate PDF"}</button>
             </>
           )}
 
           {/* ═══════════ WOW MOMENT ═══════════ */}
           {step !== "wow" ? (
-            <button onClick={handleWowMoment} className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 shadow-lg shadow-purple-500/25">🤯 Ver Wow Moment: Modificar UN PÍXEL</button>
+            <button onClick={handleWowMoment} className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 shadow-lg shadow-purple-500/25">🤯 View Wow Moment: Change ONE PIXEL</button>
           ) : (
             <WowMoment
               originalRoot={originalRoot}
@@ -259,7 +259,7 @@ export default function VerifyPage() {
             />
           )}
 
-          <button onClick={handleReset} className="w-full py-4 rounded-xl font-semibold border-2 border-slate-700 text-slate-300 hover:border-slate-600">← Verificar otra imagen</button>
+          <button onClick={handleReset} className="w-full py-4 rounded-xl font-semibold border-2 border-slate-700 text-slate-300 hover:border-slate-600">← Verify another image</button>
         </div>
       )}
 
@@ -267,21 +267,21 @@ export default function VerifyPage() {
       {step === "upload" && (
         <div className="mt-12">
           <button onClick={() => setShowManual(!showManual)} className="w-full text-left flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-900/30 p-4 hover:border-slate-600/50">
-            <div><span className="text-sm font-semibold text-slate-300">📜 ¿Tenés un certificado PDF?</span><p className="text-xs text-slate-500 mt-0.5">Verificá manualmente pegando el Merkle Root</p></div>
+            <div><span className="text-sm font-semibold text-slate-300">📜 Have a PDF certificate?</span><p className="text-xs text-slate-500 mt-0.5">Verify manually by pasting the Merkle Root</p></div>
             <span className={cn("text-slate-500 transition-transform", showManual && "rotate-180")}>▼</span>
           </button>
           {showManual && (
             <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-900/30 p-5 space-y-4">
-              <label className="block text-sm font-medium text-slate-300">Pegá tu Merkle Root</label>
+              <label className="block text-sm font-medium text-slate-300">Paste your Merkle Root</label>
               <div className="flex gap-3">
                 <input type="text" value={manualRoot} onChange={e => setManualRoot(e.target.value)} placeholder="0x..." className={cn("flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-sm text-slate-200 font-mono","focus:outline-none focus:ring-2 focus:ring-cyan-500/50","placeholder:text-slate-600")} />
-                <button onClick={handleManualVerify} disabled={!manualRoot.trim() || manualLoading} className={cn("rounded-lg px-5 py-3 text-sm font-semibold shrink-0", manualRoot.trim() ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400" : "bg-slate-800 text-slate-600 cursor-not-allowed")}>{manualLoading ? "⏳" : "Verificar"}</button>
+                <button onClick={handleManualVerify} disabled={!manualRoot.trim() || manualLoading} className={cn("rounded-lg px-5 py-3 text-sm font-semibold shrink-0", manualRoot.trim() ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400" : "bg-slate-800 text-slate-600 cursor-not-allowed")}>{manualLoading ? "⏳" : "Verify"}</button>
               </div>
               {manualResult && (
                 <div className={cn("rounded-lg p-4 text-sm", manualResult.verified ? "bg-green-500/10 border border-green-500/20 text-green-300" : "bg-red-500/5 border border-red-500/20 text-red-300")}>
-                  <p className="font-semibold mb-1">{manualResult.verified ? "✅ Confirmado" : "❌ Sin registro"}</p>
+                  <p className="font-semibold mb-1">{manualResult.verified ? "✅ Confirmed" : "❌ No record"}</p>
                   <p className="text-xs opacity-75">{manualResult.message}</p>
-                  {manualResult.provenance && <div className="mt-2 text-xs text-slate-400 space-y-1"><p>Creador: {shortenAddress(manualResult.provenance.creator)}</p><p>Modelo: {manualResult.provenance.model}</p>{manualResult.provenance.sequenceNumber && <p>Sequence: {manualResult.provenance.sequenceNumber}</p>}</div>}
+                  {manualResult.provenance && <div className="mt-2 text-xs text-slate-400 space-y-1"><p>Creator: {shortenAddress(manualResult.provenance.creator)}</p><p>Model: {manualResult.provenance.model}</p>{manualResult.provenance.sequenceNumber && <p>Sequence: {manualResult.provenance.sequenceNumber}</p>}</div>}
                 </div>
               )}
             </div>
@@ -297,11 +297,11 @@ export default function VerifyPage() {
 function AnalysisSteps({ trace, verificationResult, statusFor }: { trace: LiveTrace; verificationResult: VerificationResult | null; statusFor: (p: VerifyPhase) => "pending" | "active" | "done" }) {
   return (
     <>
-      <VerifyStep icon="📂" label="Leyendo archivo de imagen" status={statusFor("reading_file")} detail={trace.fileSize ? `Tamaño detectado: ${trace.fileSize}` : "Analizando metadatos del archivo..."} />
-      <VerifyStep icon="🔐" label="Calculando huella criptográfica (Merkle Tree)" status={statusFor("hashing")} detail="Construyendo árbol de Merkle sobre los segmentos del archivo..." result={trace.merkleRoot} />
-      <VerifyStep icon="🌐" label="Conectando a 0G Chain" status={statusFor("connecting_rpc")} detail={trace.rpcUrl ? `RPC: ${trace.rpcUrl}` : "Estableciendo conexión con el nodo RPC..."} meta={[trace.chainId ? `Chain ID: ${trace.chainId}` : undefined, trace.blockNumber ? `Bloque actual: #${trace.blockNumber.toLocaleString()}` : undefined]} />
-      <VerifyStep icon="⛓️" label="Consultando contrato inteligente" status={statusFor("querying_contract")} detail="Buscando registro de procedencia en el mapping on-chain..." meta={[trace.contractAddress ? `Contrato: ${shortenAddress(trace.contractAddress)}` : undefined, trace.querySelector]} />
-      <VerifyStep icon={verificationResult?.verified ? "✅" : "❌"} label={verificationResult?.verified ? "¡Registro encontrado on-chain!" : "Registro NO encontrado"} status={statusFor("done")} detail={verificationResult?.verified ? "El Merkle Root coincide con un registro inmutable." : "Este Merkle Root no existe en el contrato."} />
+      <VerifyStep icon="📂" label="Reading image file" status={statusFor("reading_file")} detail={trace.fileSize ? `Size detected: ${trace.fileSize}` : "Analyzing file metadata..."} />
+      <VerifyStep icon="🔐" label="Computing cryptographic fingerprint (Merkle Tree)" status={statusFor("hashing")} detail="Building Merkle Tree over file segments..." result={trace.merkleRoot} />
+      <VerifyStep icon="🌐" label="Connecting to 0G Chain" status={statusFor("connecting_rpc")} detail={trace.rpcUrl ? `RPC: ${trace.rpcUrl}` : "Establishing connection to RPC node..."} meta={[trace.chainId ? `Chain ID: ${trace.chainId}` : undefined, trace.blockNumber ? `Current block: #${trace.blockNumber.toLocaleString()}` : undefined]} />
+      <VerifyStep icon="⛓️" label="Querying smart contract" status={statusFor("querying_contract")} detail="Looking up provenance record in on-chain mapping..." meta={[trace.contractAddress ? `Contract: ${shortenAddress(trace.contractAddress)}` : undefined, trace.querySelector]} />
+      <VerifyStep icon={verificationResult?.verified ? "✅" : "❌"} label={verificationResult?.verified ? "Record found on-chain!" : "Record NOT found"} status={statusFor("done")} detail={verificationResult?.verified ? "Merkle Root matches an immutable on-chain record." : "This Merkle Root does not exist in the contract."} />
     </>
   );
 }

@@ -22,13 +22,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </a>
           <div className="flex items-center gap-6 text-sm">
             <a href="/create" className="text-slate-400 hover:text-violet-300 transition-colors">
-              Crear Obra
+              Create
             </a>
             <a href="/verify" className="text-slate-400 hover:text-violet-300 transition-colors">
-              Verificar
+              Verify
             </a>
             <a href="/my-works" className="text-slate-400 hover:text-violet-300 transition-colors">
-              Mis Obras
+              My Works
             </a>
             <a
               href="https://github.com/0gfoundation"
@@ -49,8 +49,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <footer className="border-t border-indigo-500/20 mt-20">
         <div className="max-w-6xl mx-auto px-4 py-8 text-center text-slate-500 text-sm">
-          <p>ChainRight — Procedencia verificable para imágenes generadas con IA</p>
-          <p className="mt-2 text-xs">Construido en 0G Chain | Demo para Hackathon</p>
+          <p>ChainRight — Verifiable provenance for AI-generated images</p>
+          <p className="mt-2 text-xs">Built on 0G Chain | Hackathon Demo</p>
         </div>
       </footer>
     </AppProviders>

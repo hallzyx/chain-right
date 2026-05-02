@@ -9,15 +9,16 @@
 - Storage: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8)
 - Compute: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
 - Fallback Image Generation: OpenAI Images API (`openai`)
-  - Demo profile: `gpt-image-1-mini`, `size: auto` (válido), `quality: low`, `jpeg` + compression
+  - Demo profile: `gpt-image-1-mini`, `size: auto` (valid), `quality: low`, `jpeg` + compression
 - Wallet Auth/UI Gate: RainbowKit + Wagmi + Viem
 - Chain: 0G Chain (EVM-compatible, evmVersion: "cancun")
-- Wallet: ethers v6.13.1 + MetaMask (RainbowKit para demo avanzada - DEMO: usar ethers directamente para simplicidad)
+- Wallet: ethers v6.13.1 + MetaMask (RainbowKit for advanced demo — DEMO: use ethers directly for simplicity)
+- PDF Generation: `jspdf` (certificate export for verified works)
 - Deploy: Vercel (frontend) + 0G Testnet (contracts)
 
 ## Blockchain
 
-> Extensión de arz_plugin_blockchain.md
+> Extension of arz_plugin_blockchain.md
 
 - Chain: 0G Chain
 - Network (dev): 0G Galileo Testnet (Chain ID: 16602)
@@ -25,94 +26,111 @@
 - Contract language: Solidity ^0.8.24
 - Tooling: Hardhat
 - Wallet integration: ethers v6 + MetaMask
-- RPC provider: Public RPC de 0G (https://evmrpc-testnet.0g.ai)
+- RPC provider: Public 0G RPC (https://evmrpc-testnet.0g.ai)
 - Block explorer: https://chainscan-galileo.0g.ai (testnet)
-- Contract upgrade strategy: immutable (para hackathon, simplicidad)
+- Contract upgrade strategy: immutable (for hackathon, simplicity)
 
 ## Deployed Contracts
 
 | Contract | Network | Address | Verified |
 |---|---|---|---|
-| ChainRightERC721 | 0G Testnet | `0xF11baF976030502598569ECf65A9F8dbFA3C8434` | ⬜ |
+| ChainRightERC721 v1 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
+| ChainRightERC721 v1 | 0G Testnet | `0xF11baF976030502598569ECf65A9F8dbFA3C8434` | ⬜ |
+| ChainRightERC721 v2 | 0G Testnet | `0xE76B9fcbf59B4eBE7CE6c41939BA68D65c65Bb44` | ⬜ |
+
+> v2 adds `sequenceNumber` (txSeq) to the struct + `mintWithProvenance` now accepts 5 params + `tokenURI` on-chain.
 
 ## Agent Skills
 
 | Skill | Reason | Usage |
 |---|---|---|
-| `nextjs-15` | Frontend con Next.js App Router | Pages, routing, Server Actions |
-| `react-19` | Componentes React 19 | UI, state, efectos |
-| `tailwind-4` | Estilos con Tailwind v4 | Diseño responsive, componentes |
-| `typescript` | TypeScript estricto | Tipos, interfaces, seguridad |
-| `solidity-security` | Seguridad en contratos Solidity | Antes de deployar, revisar patrones |
-| `storage/upload-file` | 0G Storage | Subir imágenes y metadata |
-| `storage/download-file` | 0G Storage | Descargar para verificación |
-| `storage/merkle-verification` | 0G Storage | Verificar integridad de datos |
-| `compute/text-to-image` | 0G Compute | Generar imágenes con Flux Turbo |
-| `compute/provider-discovery` | 0G Compute | Encontrar providers disponibles |
-| `compute/account-management` | 0G Compute | Depositar, transferir, verificar balance |
-| `chain/deploy-contract` | 0G Chain | Deployar ChainRightERC721 |
+| `nextjs-15` | Frontend with Next.js App Router | Pages, routing, Server Actions |
+| `react-19` | React 19 components | UI, state, effects |
+| `tailwind-4` | Tailwind v4 styles | Responsive design, components |
+| `typescript` | Strict TypeScript | Types, interfaces, safety |
+| `solidity-security` | Contract security | Before deploy, review patterns |
+| `storage/upload-file` | 0G Storage | Upload images and metadata |
+| `storage/download-file` | 0G Storage | Download for verification |
+| `storage/merkle-verification` | 0G Storage | Verify data integrity |
+| `compute/text-to-image` | 0G Compute | Generate images with Flux Turbo |
+| `compute/provider-discovery` | 0G Compute | Find available providers |
+| `compute/account-management` | 0G Compute | Deposit, transfer, check balance |
+| `chain/deploy-contract` | 0G Chain | Deploy ChainRightERC721 |
 | `chain/interact-contract` | 0G Chain | Mint, read, verify on-chain |
-| `cross-layer/storage-plus-chain` | Cross-layer | Registrar Merkle root on-chain |
-| `cross-layer/compute-plus-storage` | Cross-layer | Generar imagen + almacenar |
+| `cross-layer/storage-plus-chain` | Cross-layer | Register Merkle root on-chain |
+| `cross-layer/compute-plus-storage` | Cross-layer | Generate image + store |
 
 ## Active MCPs
 
-Este proyecto no usa MCPs externos más allá de los provistos por el sistema. Todo se hace via 0G SDKs.
+This project does not use external MCPs beyond those provided by the system. Everything is done via 0G SDKs.
 
 ## Folder Structure
 
 ```
 chainright/
 ├── app/                    # Next.js App Router
-│   ├── create/            # Generar + mintear
-│   ├── verify/            # Verificar autenticidad
+│   ├── create/            # Generate + mint
+│   ├── verify/            # Verify authenticity (includes manual Merkle root accordion)
+│   ├── my-works/          # User's minted works gallery
 │   └── page.tsx           # Home
 ├── components/            # React components
-│   ├── ImageGenerator/   # Generador de imágenes
-│   ├── NFTMinter/        # Mint de NFT
-│   └── Verifier/         # Verificador
+│   ├── app-shell.tsx      # App layout shell
+│   ├── providers.tsx      # RainbowKit + Wagmi providers
+│   ├── client-root.tsx    # Client-side root wrapper
+│   ├── wallet-gate.tsx    # Wallet connection gate
+│   ├── session-sync.tsx   # Session sync with db.json
+│   ├── certificate-card.tsx  # Certificate display card
+│   ├── my-works.tsx       # My Works gallery
+│   └── wow-moment.tsx     # Pixel-tampering verification demo
 ├── contracts/             # Solidity contracts
 │   └── ChainRightERC721.sol
-├── lib/                   # Utilidades y SDK wrappers
+├── lib/                   # Utilities and SDK wrappers
 │   ├── storage.ts        # 0G Storage wrapper
 │   ├── compute.ts        # 0G Compute wrapper
-│   └── contract.ts       # ethers v6 wrapper
-├── types/                 # TypeScript interfaces
+│   ├── contract.ts       # ethers v6 wrapper
+│   ├── certificate-pdf.ts # jspdf certificate PDF generation
+│   ├── openai.ts         # OpenAI fallback
+│   ├── db.ts             # db.json persistence
+│   ├── utils.ts          # Shared utilities
+│   ├── wallet-config.ts  # RainbowKit + Wagmi config
+│   ├── types.ts          # TypeScript interfaces
+│   └── abi/              # Contract ABIs
+│       └── ChainRightERC721.abi.ts
 ├── scripts/               # Hardhat deploy scripts
 ├── hardhat.config.ts      # Hardhat config (evmVersion: cancun)
-├── .env.example           # Variables de entorno
-├── product.md             # ARZ Lite - producto
-├── stack.md               # ARZ Lite - stack
-├── userflow_*.md          # ARZ Lite - userflows
-└── AGENTS.md              # Orquestación del proyecto
+├── .env.example           # Environment variables
+├── product.md             # ARZ Lite — product
+├── stack.md               # ARZ Lite — stack
+├── userflow_*.md          # ARZ Lite — userflows
+└── AGENTS.md              # Project orchestration
 ```
 
 ## Environment Variables
 
 | Variable | Value for demo |
 |---|---|
-| `PRIVATE_KEY` | Wallet privada para deploy y tests (nunca commitear) |
+| `PRIVATE_KEY` | Private wallet for deploy and tests (never commit) |
 | `NEXT_PUBLIC_RPC_URL` | `https://evmrpc-testnet.0g.ai` |
 | `NEXT_PUBLIC_CHAIN_ID` | `16602` |
 | `NEXT_PUBLIC_STORAGE_INDEXER` | `https://indexer-storage-testnet-turbo.0g.ai` |
 | `RPC_URL` | `https://evmrpc-testnet.0g.ai` (server-side actions) |
 | `STORAGE_INDEXER` | `https://indexer-storage-testnet-turbo.0g.ai` (server-side actions) |
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0xF11baF976030502598569ECf65A9F8dbFA3C8434` |
-| `PROVIDER_ADDRESS` | `TBD` - provider de text-to-image (se descubre via provider-discovery) |
-| `OPENAI_API_KEY` | API key para fallback de imagen cuando no hay providers en 0G |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0xE76B9fcbf59B4eBE7CE6c41939BA68D65c65Bb44` |
+| `PROVIDER_ADDRESS` | `TBD` — text-to-image provider (discovered via provider-discovery) |
+| `OPENAI_API_KEY` | API key for image fallback when no 0G providers available |
 
 ## Commands
 
 - Dev frontend: `npm run dev`
 - Dev chain (Hardhat Network): `npx hardhat node`
-- Compilar contratos: `npm run compile`
-- Deployar a testnet: `npx hardhat run scripts/deploy.ts --network 0g-testnet`
+- Compile contracts: `npm run compile`
+- Deploy to testnet: `npx hardhat run scripts/deploy.ts --network 0g-testnet`
 - Build: `npm run build`
 
 ## 0G Network Config
 
 ### Testnet (Galileo)
-| Parámetro | Valor |
+| Parameter | Value |
 |---|---|
 | RPC | `https://evmrpc-testnet.0g.ai` |
 | Chain ID | `16602` |
@@ -120,86 +138,99 @@ chainright/
 | Explorer | `https://chainscan-galileo.0g.ai` |
 | Storage RPC | `https://storagerpc-testnet.0g.ai` |
 | Storage Indexer | `https://indexer-storage-testnet-turbo.0g.ai` |
+| StorageScan | `https://storagescan-galileo.0g.ai` |
 | Faucet | `https://faucet.0g.ai` |
 
 ### Mainnet (Aristotle)
-| Parámetro | Valor |
+| Parameter | Value |
 |---|---|
 | RPC | `https://evmrpc.0g.ai` |
 | Chain ID | `16661` |
 | Explorer | `https://chainscan.0g.ai` |
 
-## Critical Rules (de 0G AGENTS.md)
+## Critical Rules (from 0G AGENTS.md)
+
+### ALWAYS:
+- Call `processResponse()` AFTER EVERY inference
+- Correct parameter order: `processResponse(providerAddress, chatID, usageData)`
+- Extract ChatID from `ZG-Res-Key` header FIRST
+- Use `evmVersion: "cancun"` for ALL contracts
+- Use ethers **v6** (never v5): `ethers.JsonRpcProvider`, `ethers.parseEther`
+- Close `ZgFile` with `file.close()` in `finally` block
+- Private keys ONLY from `.env`
+
+### NEVER:
+- Skip `processResponse()` (locks funds)
+- Invert `processResponse()` parameter order
+- Hardcode private keys
+- Lose the Merkle Root (without it you can't retrieve the file)
+- Use evmVersion other than "cancun"
 
 ## Contract ABI Compatibility Note
 
-- `mintWithProvenance` en el despliegue actual usa firma de 4 args:
+- `mintWithProvenance` v1 uses 4-arg signature:
   `mintWithProvenance(bytes32 merkleRoot, string zkResKey, string prompt, string model)`
-- El wrapper `lib/contract.ts` tiene fallback compatible para 4/5 args.
+- `mintWithProvenance` v2 uses 5-arg signature:
+  `mintWithProvenance(bytes32 merkleRoot, string zkResKey, string prompt, string model, string sequenceNumber)`
+- The wrapper `lib/contract.ts` has backward-compatible fallback for 4/5 args.
 
 ## Storage Upload Troubleshooting
 
-- Si aparece `execution reverted` en upload:
-  1. Confirmar que `PRIVATE_KEY` sea la wallet fondeada en testnet.
-  2. Confirmar coherencia de entorno server-side: `RPC_URL` + `STORAGE_INDEXER`.
-  3. Verificar payload no vacío y tamaño razonable.
+- If `execution reverted` appears on upload:
+  1. Confirm `PRIVATE_KEY` is the wallet funded on testnet.
+  2. Confirm server-side env coherence: `RPC_URL` + `STORAGE_INDEXER`.
+  3. Verify payload is not empty and size is reasonable.
 
 ## Fallback Strategy (text-to-image)
 
-- Intentar SIEMPRE primero `0G Compute`.
-- Si no hay providers disponibles:
-  - La app muestra un modal de consentimiento.
-  - Solo si el usuario acepta, se ejecuta fallback con OpenAI.
-  - El fallback usa perfil económico para demo (bajo costo).
-- El flujo posterior se mantiene en testnet:
-  - Upload a 0G Storage
-  - Mint en 0G Chain
+- ALWAYS try `0G Compute` first.
+- If no providers are available:
+  - The app shows a consent modal.
+  - Only if the user accepts, fallback to OpenAI is executed.
+  - Fallback uses budget profile for demo (low cost).
+- Post-generation flow stays on testnet:
+  - Upload to 0G Storage
+  - Mint on 0G Chain
   - Verify on-chain
 
 ## Storage Upload Transport
 
-- El guardado a 0G Storage se hace vía `POST /api/storage/upload` (multipart/form-data).
-- Motivo: mayor estabilidad que enviar base64 pesado por Server Actions en este flujo.
+- Saving to 0G Storage is done via `POST /api/storage/upload` (multipart/form-data).
+- Reason: more stable than sending heavy base64 via Server Actions in this flow.
 
 ## Next.js Server Actions Limits
 
-- Se configuró `serverActions.bodySizeLimit = "8mb"` en `next.config.ts` para permitir envío de imagen base64 al guardar en 0G Storage.
+- Configured `serverActions.bodySizeLimit = "8mb"` in `next.config.ts` to allow base64 image submission when saving to 0G Storage.
 
 ## MVP UX Persistence
 
-- Se usa `db.json` como almacenamiento local MVP para `users` y `works`.
+- Uses `db.json` as local MVP storage for `users` and `works`.
 - Endpoints:
   - `POST /api/users/login`
   - `GET /api/works?wallet=0x...`
   - `POST /api/works`
 
-## P2 Backlog
+## Verify Page — Manual Merkle Root Verification
 
-- Reintroducir y mejorar el “Wow Feature” (modificación de 1 píxel y contraste visual de hashes) con UX guiada para video.
+The Verify page (`app/verify/page.tsx`) includes an accordion section for manual Merkle root verification:
+- Users can paste a Merkle root hash and check it against on-chain records.
+- Bypasses the full upload + comparison flow for quick lookups.
+- Returns the stored provenance metadata if found.
 
-### SIEMPRE:
-- Llamar `processResponse()` DESPUÉS de CADA inferencia
-- Orden correcto de parámetros: `processResponse(providerAddress, chatID, usageData)`
-- Extraer ChatID del header `ZG-Res-Key` PRIMERO
-- Usar `evmVersion: "cancun"` para TODOS los contratos
-- Usar ethers **v6** (nunca v5): `ethers.JsonRpcProvider`, `ethers.parseEther`
-- Cerrar `ZgFile` con `file.close()` en bloque `finally`
-- Claves privadas SOLO desde `.env`
+## StorageScan URL Format
 
-### NUNCA:
-- Saltearte `processResponse()` (bloquea fondos)
-- Invertir orden de parámetros de `processResponse()`
-- Hardcodear private keys
-- Perder el Merkle Root (sin él no recuperás el archivo)
-- Usar evmVersion que no sea "cancun"
+- StorageScan submission URLs follow the format:
+  `https://storagescan-galileo.0g.ai/submission/{txSeq}`
+- Where `{txSeq}` is the `sequenceNumber` stored in the v2 contract struct.
+- Used to link users to their on-chain storage proof via the StorageScan explorer.
 
 ## What we are NOT Building
 
-> Corte explícito para evitar scope creep a las 3am.
+> Explicit cutoff to avoid scope creep at 3am.
 
-- No galería personal de NFTs — solo crear y verificar
-- No transferencias entre usuarios — el NFT queda en la wallet que lo minteó
-- No royalties ni secondary sales — para demo no importa
-- No autenticación de usuario más allá de MetaMask
-- No historial completo — solo lo que está on-chain
-- No edición de metadata — una vez minteado, es inmutable (esa es la gracia)
+- No personal NFT gallery — only create and verify
+- No transfers between users — the NFT stays in the wallet that minted it
+- No royalties or secondary sales — irrelevant for demo
+- No user authentication beyond MetaMask
+- No full history — only what's on-chain
+- No metadata editing — once minted, it's immutable (that's the point)

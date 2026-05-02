@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const wallet = String(body?.wallet || "").trim();
 
     if (!wallet || !wallet.startsWith("0x")) {
-      return NextResponse.json({ success: false, error: "Wallet inválida" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Invalid wallet" }, { status: 400 });
     }
 
     const user = await upsertUser(wallet);

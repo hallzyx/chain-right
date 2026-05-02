@@ -27,7 +27,7 @@ export function shortenAddress(address: string): string {
  */
 export function formatTimestamp(timestamp: bigint | number): string {
   const ts = typeof timestamp === "bigint" ? Number(timestamp) : timestamp;
-  return new Date(ts * 1000).toLocaleString("es-AR", {
+  return new Date(ts * 1000).toLocaleString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",

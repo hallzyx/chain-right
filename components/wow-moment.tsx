@@ -61,11 +61,11 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
       {/* Header */}
       <div className="text-center px-6 pt-6 pb-2">
         <h3 className="text-xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent mb-1">
-          🤯 Wow Moment: 1 Solo Píxel = Cambio Total
+          🤯 Wow Moment: 1 Single Pixel = Total Change
         </h3>
         <p className="text-sm text-slate-400">
-          Modificamos <strong className="text-pink-300">1 byte</strong> del archivo.
-          Las imágenes se ven <strong className="text-cyan-300">idénticas</strong> al ojo humano.
+          We modified <strong className="text-pink-300">1 byte</strong> of the file.
+          The images look <strong className="text-cyan-300">identical</strong> to the human eye.
         </p>
       </div>
 
@@ -87,7 +87,7 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
           {originalImage ? (
             <img src={originalImage} alt="Original" className="w-full h-48 object-contain opacity-80" />
           ) : (
-            <div className="w-full h-48 flex items-center justify-center text-slate-600 text-xs">Sin imagen</div>
+            <div className="w-full h-48 flex items-center justify-center text-slate-600 text-xs">No image</div>
           )}
           {/* Píxel modificado indicator */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
@@ -98,12 +98,12 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
         {/* Modificada */}
         <div className="relative bg-slate-950 p-3">
           <div className="absolute top-2 right-2 z-20 bg-red-500/20 border border-red-500/30 rounded-md px-2 py-0.5 text-[10px] font-bold text-red-400">
-            MODIFICADA
+            MODIFIED
           </div>
           {originalImage ? (
             <img src={originalImage} alt="Modificada" className="w-full h-48 object-contain opacity-80" />
           ) : (
-            <div className="w-full h-48 flex items-center justify-center text-slate-600 text-xs">Sin imagen</div>
+            <div className="w-full h-48 flex items-center justify-center text-slate-600 text-xs">No image</div>
           )}
           {/* Píxel modificado indicator */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
@@ -116,7 +116,7 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
       {/* Separador visual */}
       <div className="flex items-center gap-2 px-6 mt-4">
         <div className="flex-1 h-px bg-slate-700" />
-        <span className="text-[10px] text-slate-500 font-mono">ANÁLISIS CRIPTOGRÁFICO</span>
+        <span className="text-[10px] text-slate-500 font-mono">CRYPTOGRAPHIC ANALYSIS</span>
         <div className="flex-1 h-px bg-slate-700" />
       </div>
 
@@ -125,7 +125,7 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
         <div className="grid grid-cols-2 gap-4 mb-3">
           {/* Hash original */}
           <div>
-            <p className="text-[10px] text-green-400 font-bold mb-1.5">🟢 HASH ORIGINAL</p>
+            <p className="text-[10px] text-green-400 font-bold mb-1.5">🟢 ORIGINAL HASH</p>
             <div className="bg-slate-950/80 border border-slate-700/50 rounded-lg p-3">
               <code className="text-[11px] leading-relaxed break-all font-mono">
                 {originalRoot ? renderDiffRow(diff, "top") : "Calculando..."}
@@ -135,10 +135,10 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
 
           {/* Hash modificado */}
           <div>
-            <p className="text-[10px] text-red-400 font-bold mb-1.5">🔴 HASH MODIFICADO</p>
+            <p className="text-[10px] text-red-400 font-bold mb-1.5">🔴 MODIFIED HASH</p>
             <div className="bg-slate-950/80 border border-slate-700/50 rounded-lg p-3">
               <code className="text-[11px] leading-relaxed break-all font-mono">
-                {modifiedRoot ? renderDiffRow(diff, "bottom") : "Calculando..."}
+                {modifiedRoot ? renderDiffRow(diff, "bottom") : "Computing..."}
               </code>
             </div>
           </div>
@@ -147,10 +147,10 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
         {/* Leyenda */}
         <div className="flex gap-4 text-[10px] justify-center mb-3">
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-green-500/40 inline-block" /> Coincide
+            <span className="w-2.5 h-2.5 rounded-sm bg-green-500/40 inline-block" /> Match
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-red-500/40 inline-block" /> Diferente
+            <span className="w-2.5 h-2.5 rounded-sm bg-red-500/40 inline-block" /> Different
           </span>
         </div>
       </div>
@@ -160,19 +160,19 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
         <div className="bg-slate-900/70 border border-purple-500/20 rounded-xl p-4">
           <div className="grid grid-cols-3 gap-4 text-center">
             <StatBox
-              label="Caracteres comparados"
+              label="Chars Compared"
               value={String(totalChars)}
               color="text-slate-400"
               animate
             />
             <StatBox
-              label="Caracteres coincidentes"
+              label="Matching Chars"
               value={String(matchingChars)}
               color="text-green-400"
               animate
             />
             <StatBox
-              label="Similitud criptográfica"
+              label="Cryptographic Similarity"
               value={`${similarity.toFixed(2)}%`}
               color={similarity < 5 ? "text-red-400" : "text-yellow-400"}
               animate
@@ -186,15 +186,15 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
       <div className={cn("px-6 pb-6 text-center transition-all duration-1000 delay-300", showDiff ? "opacity-100" : "opacity-0")}>
         <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
           <p className="text-base font-bold text-purple-300 mb-1">
-            Los hashes son <span className="text-pink-400">COMPLETAMENTE DISTINTOS</span>
+            The hashes are <span className="text-pink-400">COMPLETELY DIFFERENT</span>
           </p>
           <p className="text-xs text-slate-400 max-w-lg mx-auto">
-            Por eso es <strong className="text-cyan-300">criptográficamente imposible</strong> falsificar
-            una obra registrada en ChainRight. Si cambiás un solo byte del archivo,
-            el hash resultante no coincide con ningún registro on-chain.
+            This is why it is <strong className="text-cyan-300">cryptographically impossible</strong> to forge
+            a work registered on ChainRight. If you change a single byte of the file,
+            the resulting hash won't match any on-chain record.
             <br />
             <span className="text-slate-500 mt-1 block">
-              Así funciona SHA-256 + Merkle Trees. La blockchain no miente.
+              This is how SHA-256 + Merkle Trees work. The blockchain doesn't lie.
             </span>
           </p>
         </div>

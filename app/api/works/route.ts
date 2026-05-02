@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const wallet = req.nextUrl.searchParams.get("wallet") || "";
     if (!wallet || !wallet.startsWith("0x")) {
-      return NextResponse.json({ success: false, error: "Wallet requerida" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Wallet required" }, { status: 400 });
     }
 
     const works = await getWorksByWallet(wallet);
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Partial<DbWork>;
     if (!body.wallet || !body.merkleRoot || !body.prompt) {
       return NextResponse.json(
-        { success: false, error: "Campos requeridos faltantes" },
+        { success: false, error: "Missing required fields" },
         { status: 400 }
       );
     }

@@ -46,7 +46,7 @@ async function ensureWalletHasBalance(wallet: Wallet): Promise<void> {
   const balance = await wallet.provider?.getBalance(wallet.address);
   if (!balance || balance <= BigInt(0)) {
     throw new Error(
-      "Wallet sin balance 0G para upload. Fondeá la misma wallet usada en PRIVATE_KEY."
+      "Wallet has no 0G balance for upload. Fund the same wallet used in PRIVATE_KEY."
     );
   }
 }
@@ -65,7 +65,7 @@ function getIndexer(): Indexer {
 function getWallet(): Wallet {
   const privateKey = process.env.PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error("PRIVATE_KEY no configurado en .env");
+    throw new Error("PRIVATE_KEY not configured in .env");
   }
   const provider = new JsonRpcProvider(RPC_URL);
   return new Wallet(privateKey, provider);
@@ -94,7 +94,7 @@ export async function computeMerkleRoot(filePath: string): Promise<MerkleResult>
     if (err) {
       return {
         success: false,
-        error: `Error generando Merkle Tree: ${err.message}`,
+        error: `Error generating Merkle Tree: ${err.message}`,
       };
     }
 
@@ -102,7 +102,7 @@ export async function computeMerkleRoot(filePath: string): Promise<MerkleResult>
     if (!rootHash) {
       return {
         success: false,
-        error: "Merkle Root no disponible",
+        error: "Merkle Root not available",
       };
     }
 
@@ -113,7 +113,7 @@ export async function computeMerkleRoot(filePath: string): Promise<MerkleResult>
   } catch (error: any) {
     return {
       success: false,
-      error: `Error calculando Merkle Root: ${error.message}`,
+      error: `Error computing Merkle Root: ${error.message}`,
     };
   } finally {
     if (file) {
@@ -139,7 +139,7 @@ export async function computeMerkleRootFromBuffer(data: Uint8Array): Promise<Mer
   } catch (error: any) {
     return {
       success: false,
-      error: `Error escribiendo archivo temporal: ${error.message}`,
+      error: `Error writing temp file: ${error.message}`,
     };
   } finally {
     // Limpiamos el archivo temporal
@@ -178,7 +178,7 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
     if (treeErr) {
       return {
         success: false,
-        error: `Error generando Merkle Tree: ${treeErr.message}`,
+        error: `Error generating Merkle Tree: ${treeErr.message}`,
       };
     }
 
@@ -186,7 +186,7 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
     if (!merkleRoot) {
       return {
         success: false,
-        error: "Merkle Root no disponible",
+        error: "Merkle Root not available",
       };
     }
 
@@ -196,7 +196,7 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
     if (uploadErr) {
       return {
         success: false,
-        error: `Error subiendo archivo: ${uploadErr.message}. Revisá que PRIVATE_KEY sea la wallet fondeada y que NEXT_PUBLIC_RPC_URL/NEXT_PUBLIC_STORAGE_INDEXER sean testnet coherentes.`,
+        error: `Error uploading file: ${uploadErr.message}. Make sure PRIVATE_KEY is the funded wallet and NEXT_PUBLIC_RPC_URL/NEXT_PUBLIC_STORAGE_INDEXER use consistent testnet.`,
       };
     }
 
@@ -251,13 +251,13 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
       return {
         success: false,
         error:
-          "Upload revertido por contrato de storage (estimateGas). Causa típica: key/rpc/indexer no coherentes o payload inválido. Verificá NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_STORAGE_INDEXER y PRIVATE_KEY de la wallet fondeada.",
+          "Upload reverted by storage contract (estimateGas). Typical cause: inconsistent key/rpc/indexer or invalid payload. Check NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_STORAGE_INDEXER and PRIVATE_KEY of the funded wallet.",
       };
     }
 
     return {
       success: false,
-      error: `Error inesperado en upload: ${error.message}`,
+      error: `Unexpected error uploading: ${error.message}`,
     };
   } finally {
     // ============ PASO 3: Cerrar file handle ============
@@ -278,7 +278,7 @@ export async function uploadBuffer(data: Uint8Array, fileExtension = "png"): Pro
   if (!data || data.length === 0) {
     return {
       success: false,
-      error: "Buffer vacío: no hay datos para subir",
+      error: "Empty buffer: no data to upload",
     };
   }
 
@@ -288,7 +288,7 @@ export async function uploadBuffer(data: Uint8Array, fileExtension = "png"): Pro
   } catch (error: any) {
     return {
       success: false,
-      error: `Error en uploadBuffer: ${error.message}`,
+      error: `Error in uploadBuffer: ${error.message}`,
     };
   } finally {
     try {
@@ -334,7 +334,7 @@ export async function downloadFile(
     if (err) {
       return {
         success: false,
-        error: `Error descargando: ${err.message}`,
+        error: `Error downloading: ${err.message}`,
       };
     }
 
@@ -358,7 +358,7 @@ export async function downloadFile(
   } catch (error: any) {
     return {
       success: false,
-      error: `Error inesperado en download: ${error.message}`,
+      error: `Unexpected error downloading: ${error.message}`,
     };
   }
 }

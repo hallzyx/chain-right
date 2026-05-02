@@ -41,7 +41,7 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://evmrpc-testnet.0g.ai
 function getWallet(): ethers.Wallet {
   const privateKey = process.env.PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error("PRIVATE_KEY no configurado en .env");
+    throw new Error("PRIVATE_KEY not configured in .env");
   }
   const provider = new ethers.JsonRpcProvider(RPC_URL);
   return new ethers.Wallet(privateKey, provider);
@@ -184,7 +184,7 @@ export async function generateImage(
           providerAddress: "",
           model: "flux-turbo",
           prompt,
-          error: "No hay providers de text-to-image disponibles en este momento",
+          error: "No text-to-image providers available at this moment",
         };
       }
       // Preferir TEE-verified
@@ -227,7 +227,7 @@ export async function generateImage(
         providerAddress: targetProvider,
         model: model || "flux-turbo",
         prompt,
-        error: `Error en el provider: ${response.status} ${errorText}`,
+        error: `Provider error: ${response.status} ${errorText}`,
       };
     }
 
@@ -239,7 +239,7 @@ export async function generateImage(
     let chatID = response.headers.get("ZG-Res-Key") || response.headers.get("zg-res-key");
 
     if (!chatID) {
-      console.warn("No se encontró ZG-Res-Key en headers — usando valor por defecto");
+      console.warn("ZG-Res-Key not found in headers — using default value");
     }
 
     // ============ PASO 4: Parsear respuesta ============
@@ -298,7 +298,7 @@ export async function generateImage(
       providerAddress: providerAddress || "",
       model: "flux-turbo",
       prompt,
-      error: `Error generando imagen: ${error.message}`,
+      error: `Error generating image: ${error.message}`,
     };
   }
 }

@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     if (!(file instanceof File)) {
       return NextResponse.json(
-        { success: false, error: "Archivo inválido" },
+        { success: false, error: "Invalid file" },
         { status: 400 }
       );
     }
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     if (!data || data.length === 0) {
       return NextResponse.json(
-        { success: false, error: "Archivo vacío" },
+        { success: false, error: "Empty file" },
         { status: 400 }
       );
     }
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: result.error || "Error subiendo archivo" },
+        { success: false, error: result.error || "Error uploading file" },
         { status: 500 }
       );
     }
