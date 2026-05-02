@@ -5,6 +5,7 @@ import { actionVerifyImage, actionComputeMerkleRoot, actionManualVerify, actionG
 import { cn, shortenAddress } from "@/lib/utils";
 import { bufferToDataUrl, modifyOnePixel } from "@/lib/utils";
 import { downloadCertificatePdf } from "@/lib/certificate-pdf";
+import { WowMoment } from "@/components/wow-moment";
 import type { VerificationResult } from "@/lib/types";
 
 type VerifyPhase = "idle" | "reading_file" | "hashing" | "connecting_rpc" | "querying_contract" | "done";
@@ -251,15 +252,11 @@ export default function VerifyPage() {
           {step !== "wow" ? (
             <button onClick={handleWowMoment} className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 shadow-lg shadow-purple-500/25">🤯 Ver Wow Moment: Modificar UN PÍXEL</button>
           ) : (
-            <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl p-6">
-              <h3 className="font-bold text-lg mb-4 text-center text-purple-300">🤯 Wow Moment: 1 Píxel = Cambio Total</h3>
-              <p className="text-sm text-slate-400 mb-5 text-center">Modificamos <strong className="text-pink-300">UN SOLO PÍXEL</strong>. El hash cambia por completo.</p>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-slate-900/70 rounded-xl p-4 border border-green-500/20"><p className="text-xs font-bold text-green-400 mb-2">🟢 ORIGINAL</p><div className="bg-slate-950 border border-slate-700 rounded-lg p-3"><code className="text-xs text-green-400 break-all font-mono">{originalRoot}</code></div></div>
-                <div className="bg-slate-900/70 rounded-xl p-4 border border-red-500/20"><p className="text-xs font-bold text-red-400 mb-2">🔴 MODIFICADA (1 píxel)</p><div className="bg-slate-950 border border-slate-700 rounded-lg p-3"><code className="text-xs text-red-400 break-all font-mono">{modifiedRoot || "Calculando..."}</code></div></div>
-              </div>
-              <div className="mt-5 p-4 bg-slate-900/70 rounded-xl border border-purple-500/20 text-center"><p className="text-base font-bold text-purple-300">Los hashes son COMPLETAMENTE DISTINTOS.</p><p className="text-xs text-slate-400">Por eso es imposible falsificar. La blockchain no miente.</p></div>
-            </div>
+            <WowMoment
+              originalRoot={originalRoot}
+              modifiedRoot={modifiedRoot}
+              originalImage={uploadedImage}
+            />
           )}
 
           <button onClick={handleReset} className="w-full py-4 rounded-xl font-semibold border-2 border-slate-700 text-slate-300 hover:border-slate-600">← Verificar otra imagen</button>
