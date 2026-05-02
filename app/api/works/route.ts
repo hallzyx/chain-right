@@ -49,6 +49,10 @@ export async function POST(req: NextRequest) {
       mintTxHash: body.mintTxHash,
       status: body.status || "minted",
       createdAt: body.createdAt || new Date().toISOString(),
+      // StorageScan URLs — necesarios para los botones de "Ver en StorageScan"
+      sequenceNumber: body.sequenceNumber,
+      submissionUrl: body.submissionUrl,
+      fileStorageUrl: body.fileStorageUrl,
     };
 
     const saved = await saveWork(work);

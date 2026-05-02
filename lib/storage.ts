@@ -155,7 +155,7 @@ export async function computeMerkleRootFromBuffer(data: Uint8Array): Promise<Mer
  * Sube un archivo a 0G Storage.
  * 
  * @param filePath Ruta al archivo local
- * @returns Merkle Root y transaction hash
+ * @returns Merkle Root, transaction hash, y campos de submission para StorageScan
  * 
  * @rules
  * 1. Genera Merkle Tree ANTES de subir
@@ -200,13 +200,50 @@ export async function uploadFile(filePath: string): Promise<StorageUploadResult>
       };
     }
 
+    // ============ PASO 3: Extraer campos de submission ============
+    // txResult puede ser: string (txHash) o un objeto con varios campos
+    // Intentamos extraer sequence/submission de múltiples posibles nombres
+    const txObj = typeof txResult === "object" && txResult !== null ? txResult : {};
+    const txObjAny = txObj as any;
+
+    // Extraer transaction hash
+    let txHash: string | undefined;
+    if (typeof txResult === "string") {
+      txHash = txResult;
+    } else if (txObjAny.txHash || txObjAny.hash || txObjAny.transactionHash) {
+      txHash = txObjAny.txHash || txObjAny.hash || txObjAny.transactionHash;
+    }
+
+    // Extraer txSeq (el campo real del SDK para el sequence number de StorageScan)
+    // El SDK de 0G devuelve { txSeq: number } o { txSeqs: number[] } para múltiples archivos
+    let sequenceNumber: string | undefined;
+
+    if (txObjAny.txSeq !== undefined && txObjAny.txSeq !== null) {
+      sequenceNumber = String(txObjAny.txSeq);
+    } else if (Array.isArray(txObjAny.txSeqs) && txObjAny.txSeqs.length > 0) {
+      // Para múltiples archivos, usamos el primer txSeq
+      sequenceNumber = String(txObjAny.txSeqs[0]);
+    }
+
+    // Construir URLs de StorageScan
+    // Formato: https://storagescan-galileo.0g.ai/submission/[txSeq]
+    const normalizedRoot = merkleRoot.startsWith("0x") ? merkleRoot : `0x${merkleRoot}`;
+
+    // URL por txSeq/submission (preferida — la que muestra los detalles de la submission)
+    const submissionUrl: string | undefined = sequenceNumber
+      ? `https://storagescan-galileo.0g.ai/submission/${sequenceNumber}`
+      : undefined;
+
+    // URL por Merkle Root (fallback)
+    const fileStorageUrl = `https://storagescan.0g.ai/#/file/${normalizedRoot}`;
+
     return {
       success: true,
-      merkleRoot: merkleRoot.startsWith("0x") ? merkleRoot : `0x${merkleRoot}`,
-      transactionHash:
-        typeof txResult === "string"
-          ? txResult
-          : (txResult as { txHash?: string } | null)?.txHash,
+      merkleRoot: normalizedRoot,
+      transactionHash: txHash,
+      sequenceNumber,
+      submissionUrl,
+      fileStorageUrl,
     };
   } catch (error: any) {
     const msg = String(error?.message || "");

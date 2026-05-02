@@ -2,6 +2,7 @@ import { ethers, Contract, InterfaceAbi, ContractTransactionResponse } from "eth
 import "dotenv/config";
 
 import type { Provenance, MintResult, VerificationResult } from "./types";
+import { CHAINRIGHT_ABI } from "./abi/ChainRightERC721.abi";
 
 // ============================================
 // Wrapper para ChainRightERC721 Contract
@@ -28,28 +29,6 @@ import type { Provenance, MintResult, VerificationResult } from "./types";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://evmrpc-testnet.0g.ai";
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-
-// ABI mínimo de ChainRightERC721 (solo las funciones que necesitamos)
-const CHAINRIGHT_ABI = [
-  // Read
-  "function records(bytes32) view returns (bytes32 merkleRoot, string zkResKey, string prompt, string model, uint256 timestamp, address creator, bool exists)",
-  "function getProvenance(bytes32) view returns (bytes32, string, string, string, uint256, address, bool)",
-  "function getProvenanceByToken(uint256) view returns (bytes32, string, string, string, uint256, address, bool)",
-  "function tokenToRoot(uint256) view returns (bytes32)",
-  "function creatorToRoots(address) view returns (bytes32[])",
-  "function creatorWorksCount(address) view returns (uint256)",
-  "function balanceOf(address) view returns (uint256)",
-  "function ownerOf(uint256) view returns (address)",
-  
-  // Write
-  // Compatibilidad: algunos despliegues usan 4 args, otros 5 args
-  "function mintWithProvenance(bytes32, string, string, string)",
-  "function mintWithProvenance(bytes32, string, string, string, string)",
-  
-  // Events
-  "event ProvenanceMinted(uint256 indexed tokenId, bytes32 indexed merkleRoot, address indexed creator, string zkResKey, string prompt, string model)",
-  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
-] as InterfaceAbi;
 
 // ============================================
 // Helpers
@@ -119,8 +98,8 @@ export async function getProvenance(merkleRoot: string): Promise<Provenance | nu
 
     const result = await contract.getProvenance(normalizedRoot);
 
-    // result es una tupla: [merkleRoot, zkResKey, prompt, model, timestamp, creator, exists]
-    const exists = result[6] as boolean;
+    // result es una tupla de 8 valores: [merkleRoot, zkResKey, prompt, model, sequenceNumber, timestamp, creator, exists]
+    const exists = result[7] as boolean;
 
     if (!exists) {
       return null;
@@ -131,8 +110,9 @@ export async function getProvenance(merkleRoot: string): Promise<Provenance | nu
       zkResKey: result[1] as string,
       prompt: result[2] as string,
       model: result[3] as string,
-      timestamp: result[4] as bigint,
-      creator: result[5] as string,
+      sequenceNumber: result[4] as string,
+      timestamp: result[5] as bigint,
+      creator: result[6] as string,
       exists: true,
     };
   } catch (error: any) {
@@ -150,7 +130,7 @@ export async function getProvenanceByToken(tokenId: bigint | number): Promise<Pr
     const tokenIdBigInt = typeof tokenId === "number" ? BigInt(tokenId) : tokenId;
 
     const result = await contract.getProvenanceByToken(tokenIdBigInt);
-    const exists = result[6] as boolean;
+    const exists = result[7] as boolean;
 
     if (!exists) {
       return null;
@@ -161,8 +141,9 @@ export async function getProvenanceByToken(tokenId: bigint | number): Promise<Pr
       zkResKey: result[1] as string,
       prompt: result[2] as string,
       model: result[3] as string,
-      timestamp: result[4] as bigint,
-      creator: result[5] as string,
+      sequenceNumber: result[4] as string,
+      timestamp: result[5] as bigint,
+      creator: result[6] as string,
       exists: true,
     };
   } catch (error: any) {
@@ -220,6 +201,7 @@ export async function getCreatorWorksCount(creator: string): Promise<number> {
  * @param zkResKey ZG-Res-Key de la inferencia
  * @param prompt Prompt exacto usado
  * @param model Modelo de IA usado
+ * @param sequenceNumber txSeq de 0G Storage
  * @param metadataUri URI de metadata (opcional)
  * @param signerOrPrivateKey Signer o private key para firmar
  */
@@ -228,6 +210,7 @@ export async function mintWithProvenance(
   zkResKey: string,
   prompt: string,
   model: string,
+  sequenceNumber: string,
   metadataUri: string,
   signerOrPrivateKey?: ethers.Signer | string
 ): Promise<MintResult> {
@@ -237,28 +220,14 @@ export async function mintWithProvenance(
     // Normalizar merkleRoot
     const normalizedRoot = merkleRoot.startsWith("0x") ? merkleRoot : `0x${merkleRoot}`;
 
-    // Llamar a mintWithProvenance (firma adaptable)
-    // 1) Probar firma de 4 args
-    // 2) Si no existe/revierte por selector, probar 5 args
-    let tx: ContractTransactionResponse;
-
-    try {
-      tx = await contract["mintWithProvenance(bytes32,string,string,string)"](
-        normalizedRoot,
-        zkResKey,
-        prompt,
-        model
-      );
-    } catch (firstErr: any) {
-      // Fallback a firma de 5 args para despliegues anteriores
-      tx = await contract["mintWithProvenance(bytes32,string,string,string,string)"](
-        normalizedRoot,
-        zkResKey,
-        prompt,
-        model,
-        metadataUri
-      );
-    }
+    // Llamar a mintWithProvenance con 5 args (v2: incluye sequenceNumber)
+    const tx: ContractTransactionResponse = await contract["mintWithProvenance(bytes32,string,string,string,string)"](
+      normalizedRoot,
+      zkResKey,
+      prompt,
+      model,
+      sequenceNumber
+    );
 
     console.log("Transacción enviada:", tx.hash);
     console.log("Esperando confirmación...");

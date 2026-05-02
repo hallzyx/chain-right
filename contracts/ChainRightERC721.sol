@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Base64.sol";
 
 /**
  * @title ChainRightERC721
@@ -12,157 +13,174 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @dev Cada NFT minteado guarda:
  *      - Merkle Root de la imagen en 0G Storage
  *      - ZG-Res-Key de la inferencia en 0G Compute
+ *      - Sequence Number (txSeq) de la submission en 0G Storage
  *      - Prompt, modelo, timestamp, y creador original
- * 
- *      Esto permite que CUALQUIER persona verifique la autenticidad de una imagen
- *      simplemente calculando su Merkle Root y consultando este contrato.
- *      
- *      Si modificás UN SOLO PÍXEL de la imagen, el Merkle Root cambia.
- *      No se puede falsificar.
  */
 contract ChainRightERC721 is ERC721, Ownable {
     using Counters for Counters.Counter;
 
-    // ============ Estructuras ============
-
-    /**
-     * @dev Registro de procedencia de una obra.
-     *      Guardado on-chain, inmutable, irrefutable.
-     */
     struct ProvenanceRecord {
-        bytes32 merkleRoot;      // Hash único de la imagen en 0G Storage
-        string zkResKey;         // ID único de la inferencia en 0G Compute (ZG-Res-Key header)
-        string prompt;           // Prompt exacto usado para generar la imagen
-        string model;            // Modelo de IA usado (ej: "Flux Turbo", "DeepSeek V3.1")
-        uint256 timestamp;       // Bloque cuando se minteó
-        address creator;         // Wallet del creador original
-        bool exists;             // Flag para saber si este registro existe
+        bytes32 merkleRoot;
+        string zkResKey;
+        string prompt;
+        string model;
+        string sequenceNumber; // txSeq de 0G Storage — linkea a storagescan-galileo
+        uint256 timestamp;
+        address creator;
+        bool exists;
     }
 
-    // ============ Estado ============
-
     Counters.Counter private _tokenIdCounter;
-
-    /**
-     * @dev Mapping de Merkle Root => Registro de procedencia.
-     *      Esta es la clave para la verificación:
-     *      Cualquier persona calcula el Merkle Root de una imagen,
-     *      consulta este mapping, y ve si existe un registro.
-     */
     mapping(bytes32 => ProvenanceRecord) public records;
-
-    /**
-     * @dev Mapping de Token ID => Merkle Root.
-     *      Para consultar la procedencia de un NFT específico.
-     */
     mapping(uint256 => bytes32) public tokenToRoot;
-
-    /**
-     * @dev Mapping de Creator => Array de Merkle Roots.
-     *      Para ver todas las obras de un creador.
-     */
     mapping(address => bytes32[]) public creatorToRoots;
+    mapping(uint256 => string) private _tokenMetadataUris;
 
-    // ============ Eventos ============
-
-    /**
-     * @dev Emitido cuando se minteó un nuevo NFT con procedencia.
-     */
     event ProvenanceMinted(
         uint256 indexed tokenId,
         bytes32 indexed merkleRoot,
         address indexed creator,
         string zkResKey,
         string prompt,
-        string model
+        string model,
+        string sequenceNumber
     );
 
-    // ============ Constructor ============
-
     constructor() ERC721("ChainRight Provenance NFT", "CRIGHT") {
-        // Token IDs empiezan en 1
         _tokenIdCounter.increment();
     }
 
-    // ============ Funciones Públicas ============
+    // ============================================
+    // Helpers para strings
+    // ============================================
+
+    function _toString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    function _toHexString(bytes32 value) internal pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(66);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < 32; i++) {
+            str[2 + i * 2] = alphabet[uint8(value[i] >> 4)];
+            str[3 + i * 2] = alphabet[uint8(value[i] & 0x0f)];
+        }
+        return string(str);
+    }
+
+    function _toHexString(address addr) internal pure returns (string memory) {
+        bytes memory s = new bytes(42);
+        s[0] = "0";
+        s[1] = "x";
+        for (uint256 i = 0; i < 20; i++) {
+            bytes1 b = bytes1(uint8(uint160(addr) >> (8 * (19 - i))));
+            bytes1 hi = bytes1(uint8(b) >> 4);
+            bytes1 lo = bytes1(uint8(b) & 0x0f);
+            s[2 + i * 2] = hi < 0x0a ? bytes1(uint8(hi) + 0x30) : bytes1(uint8(hi) + 0x57);
+            s[3 + i * 2] = lo < 0x0a ? bytes1(uint8(lo) + 0x30) : bytes1(uint8(lo) + 0x57);
+        }
+        return string(s);
+    }
+
+    function _escape(string memory str) internal pure returns (string memory) {
+        bytes memory b = bytes(str);
+        uint256 escapedCount = 0;
+        for (uint256 i = 0; i < b.length; i++) {
+            if (b[i] == '"' || b[i] == '\\') {
+                escapedCount++;
+            }
+        }
+        if (escapedCount == 0) return str;
+        bytes memory result = new bytes(b.length + escapedCount);
+        uint256 j = 0;
+        for (uint256 i = 0; i < b.length; i++) {
+            if (b[i] == '"' || b[i] == '\\') {
+                result[j++] = '\\';
+            }
+            result[j++] = b[i];
+        }
+        return string(result);
+    }
+
+    // ============================================
+    // Funciones públicas
+    // ============================================
 
     /**
      * @dev Mintea un NFT con registro de procedencia.
-     *      CUALQUIER wallet puede llamar esta función (no solo owner).
-     *      Esto es para la demo — en producción podrías agregar acceso controlado.
-     *
-     * @param merkleRoot_ bytes32 — Merkle Root de la imagen en 0G Storage
-     * @param zkResKey_ string — ZG-Res-Key de la inferencia en 0G Compute
-     * @param prompt_ string — Prompt exacto usado
-     * @param model_ string — Modelo de IA usado
-     
-     *
-     * @dev REGLAS IMPORTANTES:
-     *      1. Un Merkle Root SOLO puede ser minteado UNA VEZ.
-     *         Si alguien ya registró esa imagen, no se puede volver a mintear.
-     *      2. El msg.sender es guardado como creator.
-     *      3. El timestamp es el del bloque actual — INMUTABLE.
+     * @param merkleRoot_ Merkle Root de la imagen en 0G Storage
+     * @param zkResKey_ ZG-Res-Key de la inferencia en 0G Compute
+     * @param prompt_ Prompt exacto usado
+     * @param model_ Modelo de IA usado
+     * @param sequenceNumber_ txSeq de la submission en 0G Storage
      */
     function mintWithProvenance(
         bytes32 merkleRoot_,
         string calldata zkResKey_,
         string calldata prompt_,
-        string calldata model_
-        //string calldata metadataUri_
+        string calldata model_,
+        string calldata sequenceNumber_
     ) public {
-        // ============ Validaciones ============
-
-        // Un Merkle Root solo se puede registrar una vez
-        require(!records[merkleRoot_].exists, "ChainRight: Esta imagen ya fue registrada");
-
-        // Merkle Root no puede ser bytes32(0)
+        require(!records[merkleRoot_].exists, "ChainRight: Ya registrada");
         require(merkleRoot_ != bytes32(0), "ChainRight: Merkle Root invalido");
-
-        // ============ Crear Registro ============
 
         uint256 tokenId = _tokenIdCounter.current();
 
-        // Guardar el registro de procedencia
         records[merkleRoot_] = ProvenanceRecord({
             merkleRoot: merkleRoot_,
             zkResKey: zkResKey_,
             prompt: prompt_,
             model: model_,
+            sequenceNumber: sequenceNumber_,
             timestamp: block.timestamp,
             creator: msg.sender,
             exists: true
         });
 
-        // Mapear tokenId => merkleRoot
         tokenToRoot[tokenId] = merkleRoot_;
-
-        // Agregar a la lista del creador
         creatorToRoots[msg.sender].push(merkleRoot_);
-
-        // ============ Mintear NFT ============
-
         _safeMint(msg.sender, tokenId);
-
-        // Incrementar para el próximo
         _tokenIdCounter.increment();
 
-        // ============ Emitir Evento ============
-
-        emit ProvenanceMinted(
-            tokenId,
-            merkleRoot_,
-            msg.sender,
-            zkResKey_,
-            prompt_,
-            model_
-        );
+        emit ProvenanceMinted(tokenId, merkleRoot_, msg.sender, zkResKey_, prompt_, model_, sequenceNumber_);
     }
 
     /**
-     * @dev Consulta el registro completo de procedencia por Merkle Root.
-     *      Esta es la función principal para VERIFICAR autenticidad.
-     *
-     * @param merkleRoot_ bytes32 — Merkle Root a consultar
+     * @dev Setea la metadata URI para un token (después de subir JSON a Storage).
+     */
+    function setTokenMetadataUri(uint256 tokenId, string calldata metadataUri) public {
+        require(_exists(tokenId), "ChainRight: Token no existe");
+        require(
+            ownerOf(tokenId) == msg.sender || owner() == msg.sender,
+            "ChainRight: Sin permiso"
+        );
+        _tokenMetadataUris[tokenId] = metadataUri;
+    }
+
+    function tokenMetadataUri(uint256 tokenId) public view returns (string memory) {
+        require(_exists(tokenId), "ChainRight: Token no existe");
+        return _tokenMetadataUris[tokenId];
+    }
+
+    /**
+     * @dev Consulta registro de procedencia por Merkle Root.
      */
     function getProvenance(bytes32 merkleRoot_)
         public
@@ -172,27 +190,25 @@ contract ChainRightERC721 is ERC721, Ownable {
             string memory zkResKey,
             string memory prompt,
             string memory model,
+            string memory sequenceNumber,
             uint256 timestamp,
             address creator,
             bool exists
         )
     {
         ProvenanceRecord storage record = records[merkleRoot_];
-
         return (
             record.merkleRoot,
             record.zkResKey,
             record.prompt,
             record.model,
+            record.sequenceNumber,
             record.timestamp,
             record.creator,
             record.exists
         );
     }
 
-    /**
-     * @dev Consulta la procedencia por Token ID.
-     */
     function getProvenanceByToken(uint256 tokenId)
         public
         view
@@ -201,39 +217,75 @@ contract ChainRightERC721 is ERC721, Ownable {
             string memory zkResKey,
             string memory prompt,
             string memory model,
+            string memory sequenceNumber,
             uint256 timestamp,
             address creator,
             bool exists
         )
     {
         require(_exists(tokenId), "ChainRight: Token no existe");
-
         bytes32 root = tokenToRoot[tokenId];
         return getProvenance(root);
     }
 
-    /**
-     * @dev Devuelve la cantidad de obras de un creador.
-     */
     function creatorWorksCount(address creator) public view returns (uint256) {
         return creatorToRoots[creator].length;
     }
 
-    /**
-     * @dev Devuelve el Merkle Root en el índice especificado para un creador.
-     */
     function creatorWork(address creator, uint256 index) public view returns (bytes32) {
         require(index < creatorToRoots[creator].length, "ChainRight: Indice fuera de rango");
         return creatorToRoots[creator][index];
     }
 
     /**
-     * @dev Override de tokenURI para demo.
-     *      En producción podrías devolver una metadata URI real.
+     * @dev Devuelve Token URI con metadata COMPLETA on-chain.
+     *      Si hay una metadata URI guardada, la devuelve.
+     *      Si no, genera metadata dinámica on-chain con TODOS los atributos.
      */
-    function tokenURI(uint256 /* tokenId */) public pure override returns (string memory) {
-        // DEMO: Devolvemos una metadata hardcodeada simple
-        // En producción: ipfs://... o https://...
-        return "data:application/json;base64,eyJuYW1lIjoiQ2hhaW5SaWdodCBQcm92ZW5hbmNlIE5GVCIsImRlc2NyaXB0aW9uIjoiTkZUIHdpdGggdmVyaWZpYWJsZSBwcm92ZW5hbmNlIG9uLWNoYWluIn0=";
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_exists(tokenId), "ChainRight: Token no existe");
+
+        // 1. Primero: intentar con metadata URI guardada
+        string memory savedUri = _tokenMetadataUris[tokenId];
+        if (bytes(savedUri).length > 0) {
+            return savedUri;
+        }
+
+        // 2. Fallback: generar metadata ON-CHAIN con TODOS los atributos
+        bytes32 root = tokenToRoot[tokenId];
+        ProvenanceRecord storage record = records[root];
+
+        string memory name = string(abi.encodePacked("ChainRight Provenance #", _toString(tokenId)));
+        string memory description = "Verifiable AI-generated image. Provenance certified on 0G Chain.";
+        string memory imageUrl = string(abi.encodePacked("https://storagescan.0g.ai/#/file/", _toHexString(root)));
+        string memory externalUrl = string(abi.encodePacked("https://chainright.xyz/verify/", _toString(tokenId)));
+
+        // Construir atributos
+        bytes memory attributes = abi.encodePacked(
+            '{"trait_type":"Prompt","value":"', _escape(record.prompt), '"},',
+            '{"trait_type":"Model","value":"', _escape(record.model), '"},',
+            '{"trait_type":"Generator","value":"0G Compute (TEE-verified)"},',
+            '{"trait_type":"Merkle Root","value":"', _toHexString(root), '"},',
+            '{"trait_type":"ZK Resource Key","value":"', _escape(record.zkResKey), '"},',
+            '{"trait_type":"Sequence Number","value":"', _escape(record.sequenceNumber), '"},',
+            '{"trait_type":"Creator Wallet","value":"', _toHexString(record.creator), '"},',
+            '{"trait_type":"Minted At","value":"', _toString(record.timestamp), '"},',
+            '{"trait_type":"Chain","value":"0G Galileo Testnet"}'
+        );
+
+        // Construir JSON completo
+        bytes memory json = abi.encodePacked(
+            '{"name":"', _escape(name), '",',
+            '"description":"', _escape(description), '",',
+            '"image":"', imageUrl, '",',
+            '"external_url":"', externalUrl, '",',
+            '"attributes":[', attributes, ']}'
+        );
+
+        // Codificar en base64 usando OpenZeppelin
+        return string(abi.encodePacked(
+            "data:application/json;base64,",
+            Base64.encode(json)
+        ));
     }
 }

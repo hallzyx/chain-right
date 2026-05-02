@@ -10,19 +10,41 @@ interface Props {
   merkleRoot?: string;
   tokenId?: string;
   txHash?: string;
+  contractAddress?: string;
+  submissionUrl?: string;
+  sequenceNumber?: string;
 }
 
 /**
  * Tarjeta de certificado tangible para MVP post-mint.
  */
-export function CertificateCard({ imageUrl, wallet, prompt, model, merkleRoot, tokenId, txHash }: Props) {
+export function CertificateCard({
+  imageUrl,
+  wallet,
+  prompt,
+  model,
+  merkleRoot,
+  tokenId,
+  txHash,
+  contractAddress,
+  submissionUrl,
+  sequenceNumber,
+}: Props) {
   const explorer = txHash
     ? `https://chainscan-galileo.0g.ai/tx/${txHash}`
     : undefined;
 
-  const storageScan = merkleRoot
+  const nftUrl = contractAddress && tokenId
+    ? `https://chainscan-galileo.0g.ai/nft/${contractAddress}/${tokenId}`
+    : undefined;
+
+  const storageScanByRoot = merkleRoot
     ? `https://storagescan.0g.ai/#/file/${merkleRoot}`
     : undefined;
+
+  // Usamos submissionUrl si está disponible (preferido: /submission/[sequence])
+  // Si no, usamos el por merkle root (fallback)
+  const storageScan = submissionUrl || storageScanByRoot;
 
   return (
     <section className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-[#111A38]/90 to-[#1A0F35]/80 p-6 shadow-lg shadow-indigo-900/20">
@@ -34,7 +56,11 @@ export function CertificateCard({ imageUrl, wallet, prompt, model, merkleRoot, t
       <div className="grid gap-6 md:grid-cols-[200px,1fr]">
         <div className="overflow-hidden rounded-xl border border-indigo-500/20 bg-[#070B1A]">
           {imageUrl ? (
-            <img src={imageUrl} alt="Obra certificada" className="h-full w-full object-cover" />
+            <img
+              src={imageUrl}
+              alt="Obra certificada"
+              className="max-h-60 w-full object-contain"
+            />
           ) : (
             <div className="h-48 w-full" />
           )}
@@ -44,6 +70,7 @@ export function CertificateCard({ imageUrl, wallet, prompt, model, merkleRoot, t
           <InfoRow label="Autor" value={wallet ? shortenAddress(wallet) : "-"} />
           <InfoRow label="Modelo" value={model} />
           <InfoRow label="Token ID" value={tokenId || "-"} />
+          <InfoRow label="Sequence" value={sequenceNumber || "-"} mono />
           <InfoRow label="Prompt" value={prompt} />
 
           <div className="pt-3 flex flex-wrap gap-2">
@@ -60,7 +87,33 @@ export function CertificateCard({ imageUrl, wallet, prompt, model, merkleRoot, t
                 Ver Tx en ChainScan
               </a>
             )}
-            {storageScan && (
+            {nftUrl && (
+              <a
+                href={nftUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "rounded-lg px-3 py-2 text-xs font-semibold",
+                  "bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
+                )}
+              >
+                Ver NFT en ChainScan
+              </a>
+            )}
+            {submissionUrl && (
+              <a
+                href={submissionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "rounded-lg px-3 py-2 text-xs font-semibold",
+                  "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
+                )}
+              >
+                Ver Submission en StorageScan
+              </a>
+            )}
+            {storageScan && !submissionUrl && (
               <a
                 href={storageScan}
                 target="_blank"
@@ -80,6 +133,7 @@ export function CertificateCard({ imageUrl, wallet, prompt, model, merkleRoot, t
             <div className="mt-2 space-y-2 rounded-lg border border-slate-700/50 bg-[#070B1A]/70 p-3 text-xs">
               <InfoRow label="Merkle Root" value={merkleRoot || "-"} mono />
               <InfoRow label="Tx Hash" value={txHash || "-"} mono />
+              <InfoRow label="Sequence Number" value={sequenceNumber || "-"} mono />
             </div>
           </details>
         </div>

@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
       success: true,
       merkleRoot: result.merkleRoot,
       transactionHash: result.transactionHash,
+      sequenceNumber: result.sequenceNumber,
+      submissionUrl: result.submissionUrl,
+      fileStorageUrl: result.fileStorageUrl,
     });
   } catch (error: any) {
     return NextResponse.json(

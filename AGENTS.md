@@ -195,9 +195,11 @@ From `.0g-skills/AGENTS.md`:
 
 | Contract | Network | Address | Verified |
 |---|---|---|---|
-| ChainRightERC721 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
+| ChainRightERC721 v1 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
+| ChainRightERC721 v1 | 0G Testnet | `0xF11baF976030502598569ECf65A9F8dbFA3C8434` | ⬜ |
+| ChainRightERC721 v2 | 0G Testnet | `0xE76B9fcbf59B4eBE7CE6c41939BA68D65c65Bb44` | ⬜ |
 
-> Update this table after every deploy.
+> v2 agrega `sequenceNumber` (txSeq) al struct + mintWithProvenance + tokenURI on-chain.
 
 ## ARZ Lite Hackathon Rules (Speed > Perfection)
 

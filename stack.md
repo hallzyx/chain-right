@@ -33,7 +33,7 @@
 
 | Contract | Network | Address | Verified |
 |---|---|---|---|
-| ChainRightERC721 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
+| ChainRightERC721 | 0G Testnet | `0xF11baF976030502598569ECf65A9F8dbFA3C8434` | ⬜ |
 
 ## Agent Skills
 
@@ -97,7 +97,7 @@ chainright/
 | `NEXT_PUBLIC_STORAGE_INDEXER` | `https://indexer-storage-testnet-turbo.0g.ai` |
 | `RPC_URL` | `https://evmrpc-testnet.0g.ai` (server-side actions) |
 | `STORAGE_INDEXER` | `https://indexer-storage-testnet-turbo.0g.ai` (server-side actions) |
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0xF11baF976030502598569ECf65A9F8dbFA3C8434` |
 | `PROVIDER_ADDRESS` | `TBD` - provider de text-to-image (se descubre via provider-discovery) |
 | `OPENAI_API_KEY` | API key para fallback de imagen cuando no hay providers en 0G |
 

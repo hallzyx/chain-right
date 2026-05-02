@@ -21,6 +21,10 @@ export interface DbWork {
   mintTxHash?: string;
   status: "generated" | "stored" | "minted";
   createdAt: string;
+  // Campos para StorageScan URLs
+  sequenceNumber?: string;      // txSeq del SDK — número de submission para StorageScan
+  submissionUrl?: string;       // https://storagescan-galileo.0g.ai/submission/[txSeq]
+  fileStorageUrl?: string;      // URL del archivo en Storage (fallback por merkle root)
 }
 
 export interface DbSchema {

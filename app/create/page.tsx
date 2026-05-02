@@ -154,7 +154,8 @@ export default function CreatePage() {
         storageResult.merkleRoot,
         imageResult.zkResKey,
         imageResult.prompt,
-        imageResult.model
+        imageResult.model,
+        storageResult.sequenceNumber || ""
       );
 
       if (!result.success) {
@@ -178,6 +179,10 @@ export default function CreatePage() {
           imageDataUrl: imageResult.imageUrl,
           merkleRoot: storageResult.merkleRoot,
           storageTxHash: storageResult.transactionHash,
+          // Campos para StorageScan
+          sequenceNumber: storageResult.sequenceNumber,
+          submissionUrl: storageResult.submissionUrl,
+          fileStorageUrl: storageResult.fileStorageUrl,
           tokenId: result.tokenId?.toString(),
           mintTxHash: result.transactionHash,
           status: "minted",
@@ -415,16 +420,19 @@ export default function CreatePage() {
             <p className="text-slate-400">Tu obra ahora tiene procedencia verificable on-chain.</p>
           </div>
 
-          {/* Resultado tangible */}
-          <CertificateCard
-            imageUrl={imageResult?.imageUrl}
-            wallet={address}
-            prompt={imageResult?.prompt || ""}
-            model={imageResult?.model || ""}
-            merkleRoot={mintResult.merkleRoot}
-            tokenId={mintResult.tokenId?.toString()}
-            txHash={mintResult.transactionHash}
-          />
+           {/* Resultado tangible */}
+           <CertificateCard
+             imageUrl={imageResult?.imageUrl}
+             wallet={address}
+             prompt={imageResult?.prompt || ""}
+             model={imageResult?.model || ""}
+             merkleRoot={mintResult.merkleRoot}
+             tokenId={mintResult.tokenId?.toString()}
+             txHash={mintResult.transactionHash}
+             contractAddress={process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}
+             submissionUrl={storageResult?.submissionUrl}
+             sequenceNumber={storageResult?.sequenceNumber}
+           />
 
           <a
             href="/my-works"

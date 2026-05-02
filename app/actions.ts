@@ -189,7 +189,8 @@ export async function actionMintNFT(
   merkleRoot: string,
   zkResKey: string,
   prompt: string,
-  model: string
+  model: string,
+  sequenceNumber: string
 ): Promise<MintResult> {
   if (!isContractConfigured()) {
     return {
@@ -206,12 +207,14 @@ export async function actionMintNFT(
   console.log("- ZG-Res-Key:", zkResKey);
   console.log("- Prompt:", prompt);
   console.log("- Model:", model);
+  console.log("- Sequence Number:", sequenceNumber);
 
   return await mintWithProvenance(
     merkleRoot,
     zkResKey,
     prompt,
     model,
+    sequenceNumber,
     metadataUri
   );
 }

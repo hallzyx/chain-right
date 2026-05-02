@@ -10,6 +10,7 @@ export interface Provenance {
   zkResKey: string;             // ZG-Res-Key de la inferencia
   prompt: string;               // Prompt exacto usado
   model: string;                // Modelo de IA usado
+  sequenceNumber: string;       // txSeq de 0G Storage — linkea a storagescan
   timestamp: bigint;            // Timestamp del bloque
   creator: string;              // Address del creador
   exists: boolean;              // Si el registro existe
@@ -39,6 +40,9 @@ export interface StorageUploadResult {
   success: boolean;
   merkleRoot?: string;          // Merkle Root (hash único)
   transactionHash?: string;     // Hash de la transacción
+  sequenceNumber?: string;      // txSeq del SDK — número de submission para StorageScan
+  submissionUrl?: string;       // URL: https://storagescan-galileo.0g.ai/submission/[txSeq]
+  fileStorageUrl?: string;      // URL del archivo en Storage (fallback por merkle root)
   error?: string;
 }
 
