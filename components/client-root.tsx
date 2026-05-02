@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 
 const AppProvidersNoSSR = dynamic<{ children: React.ReactNode }>(
   () => import("@/components/providers").then((m) => m.AppProviders),
@@ -24,8 +25,12 @@ const SessionSyncNoSSR = dynamic(
 
 /**
  * Root cliente con providers y wallet-gate — Black & Amber Edition.
+ * El dashboard (/) es público, el resto requiere wallet.
  */
 export function ClientRoot({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isDashboard = pathname === "/";
+
   return (
     <AppProvidersNoSSR>
       <SessionSyncNoSSR />
@@ -67,7 +72,11 @@ export function ClientRoot({ children }: { children: React.ReactNode }) {
 
       {/* ─── Main Content ─── */}
       <div className="pt-20">
-        <WalletGateNoSSR>{children}</WalletGateNoSSR>
+        {isDashboard ? (
+          children
+        ) : (
+          <WalletGateNoSSR>{children}</WalletGateNoSSR>
+        )}
       </div>
 
       {/* ─── Footer ─── */}

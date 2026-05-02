@@ -19,9 +19,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           modalSize="compact"
           initialChain={zeroGTestnet}
           theme={darkTheme({
-            accentColor: "#7C3AED",
-            accentColorForeground: "#E6E9F5",
-            borderRadius: "medium",
+            accentColor: "#F59E0B",
+            accentColorForeground: "#0A0A0A",
+            borderRadius: "none",
             overlayBlur: "small",
           })}
         >
