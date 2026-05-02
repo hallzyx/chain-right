@@ -1,14 +1,43 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { actionVerifyImage, actionComputeMerkleRoot, actionManualVerify, actionGetVerificationDetails } from "@/app/actions";
+import {
+  actionVerifyImage,
+  actionComputeMerkleRoot,
+  actionManualVerify,
+  actionGetVerificationDetails,
+} from "@/app/actions";
 import { cn, shortenAddress } from "@/lib/utils";
 import { bufferToDataUrl, modifyOnePixel } from "@/lib/utils";
 import { downloadCertificatePdf } from "@/lib/certificate-pdf";
 import { WowMoment } from "@/components/wow-moment";
 import type { VerificationResult } from "@/lib/types";
+import {
+  ImageIcon,
+  ArrowLeft,
+  Search,
+  CheckCircle2,
+  XCircle,
+  ShieldCheck,
+  Link2,
+  Download,
+  ChevronDown,
+  ArrowRight,
+  FileSearch,
+  Loader2,
+  Fingerprint,
+  BookOpen,
+  Shield,
+  ExternalLink,
+} from "lucide-react";
 
-type VerifyPhase = "idle" | "reading_file" | "hashing" | "connecting_rpc" | "querying_contract" | "done";
+type VerifyPhase =
+  | "idle"
+  | "reading_file"
+  | "hashing"
+  | "connecting_rpc"
+  | "querying_contract"
+  | "done";
 
 interface LiveTrace {
   fileSize?: string;
@@ -20,12 +49,19 @@ interface LiveTrace {
   querySelector?: string;
 }
 
+/**
+ * Página de verificación de autenticidad.
+ * Diseño adaptado de Stitch — Black & Amber Edition.
+ */
 export default function VerifyPage() {
-  const [step, setStep] = useState<"upload" | "verifying" | "result" | "wow">("upload");
+  const [step, setStep] = useState<
+    "upload" | "verifying" | "result" | "wow"
+  >("upload");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalBase64, setOriginalBase64] = useState<string | null>(null);
   const [originalData, setOriginalData] = useState<Uint8Array | null>(null);
-  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [verificationResult, setVerificationResult] =
+    useState<VerificationResult | null>(null);
   const [originalRoot, setOriginalRoot] = useState<string | null>(null);
   const [modifiedRoot, setModifiedRoot] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +70,9 @@ export default function VerifyPage() {
   const [trace, setTrace] = useState<LiveTrace>({});
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [manualRoot, setManualRoot] = useState("");
-  const [manualResult, setManualResult] = useState<VerificationResult | null>(null);
+  const [manualResult, setManualResult] = useState<VerificationResult | null>(
+    null
+  );
   const [manualLoading, setManualLoading] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,11 +81,15 @@ export default function VerifyPage() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError(null); setVerificationResult(null); setOriginalRoot(null); setModifiedRoot(null);
+    setError(null);
+    setVerificationResult(null);
+    setOriginalRoot(null);
+    setModifiedRoot(null);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string;
-      setUploadedImage(dataUrl); setOriginalBase64(dataUrl);
+      setUploadedImage(dataUrl);
+      setOriginalBase64(dataUrl);
       setOriginalData(new Uint8Array(await file.arrayBuffer()));
     };
     reader.readAsDataURL(file);
@@ -56,48 +98,79 @@ export default function VerifyPage() {
   // ── Verificar ──
   async function handleVerify() {
     if (!originalBase64) return;
-    setError(null); setTrace({}); setStep("verifying");
+    setError(null);
+    setTrace({});
+    setStep("verifying");
 
     setVerifyPhase("reading_file");
     const sz = originalData?.length ?? 0;
-    setTrace(t => ({ ...t, fileSize: sz > 1024 ? `${(sz / 1024).toFixed(1)} KB` : `${sz} bytes` }));
+    setTrace((t) => ({
+      ...t,
+      fileSize: sz > 1024 ? `${(sz / 1024).toFixed(1)} KB` : `${sz} bytes`,
+    }));
     await sleep(350);
 
     setVerifyPhase("hashing");
     const rr = await actionComputeMerkleRoot(originalBase64);
-    if (rr.success && rr.merkleRoot) { setOriginalRoot(rr.merkleRoot); setTrace(t => ({ ...t, merkleRoot: rr.merkleRoot })); }
+    if (rr.success && rr.merkleRoot) {
+      setOriginalRoot(rr.merkleRoot);
+      setTrace((t) => ({ ...t, merkleRoot: rr.merkleRoot }));
+    }
     await sleep(300);
 
     setVerifyPhase("connecting_rpc");
     try {
       const d = await actionGetVerificationDetails();
-      setTrace(t => ({ ...t, rpcUrl: d.rpcUrl, contractAddress: d.contractAddress, chainId: d.chainId, blockNumber: d.blockNumber }));
-    } catch { /* graceful */ }
+      setTrace((t) => ({
+        ...t,
+        rpcUrl: d.rpcUrl,
+        contractAddress: d.contractAddress,
+        chainId: d.chainId,
+        blockNumber: d.blockNumber,
+      }));
+    } catch {
+      /* graceful */
+    }
     await sleep(350);
 
     setVerifyPhase("querying_contract");
-    setTrace(t => ({ ...t, querySelector: `getProvenance(${t.merkleRoot?.slice(0, 10)}...)` }));
+    setTrace((t) => ({
+      ...t,
+      querySelector: `getProvenance(${t.merkleRoot?.slice(0, 10)}...)`,
+    }));
     await sleep(300);
     const result = await actionVerifyImage(originalBase64);
     setVerificationResult(result);
     setVerifyPhase("done");
-    await sleep(250); setStep("result");
+    await sleep(250);
+    setStep("result");
   }
 
   // ── Manual ──
   async function handleManualVerify() {
     if (!manualRoot.trim()) return;
-    setManualLoading(true); setManualResult(null);
-    try { setManualResult(await actionManualVerify(manualRoot.trim())); }
-    catch (e: any) { setManualResult({ verified: false, merkleRoot: manualRoot.trim(), message: `Error: ${e.message}` }); }
-    finally { setManualLoading(false); }
+    setManualLoading(true);
+    setManualResult(null);
+    try {
+      setManualResult(await actionManualVerify(manualRoot.trim()));
+    } catch (e: any) {
+      setManualResult({
+        verified: false,
+        merkleRoot: manualRoot.trim(),
+        message: `Error: ${e.message}`,
+      });
+    } finally {
+      setManualLoading(false);
+    }
   }
 
   // ── Wow ──
   function handleWowMoment() {
     if (!originalData) return;
     const m = modifyOnePixel(originalData);
-    actionComputeMerkleRoot(bufferToDataUrl(m, "image/png")).then(r => { if (r.merkleRoot) setModifiedRoot(r.merkleRoot); });
+    actionComputeMerkleRoot(bufferToDataUrl(m, "image/png")).then((r) => {
+      if (r.merkleRoot) setModifiedRoot(r.merkleRoot);
+    });
     setStep("wow");
   }
 
@@ -108,30 +181,60 @@ export default function VerifyPage() {
     try {
       const p = verificationResult.provenance;
       await downloadCertificatePdf({
-        wallet: p.creator, prompt: p.prompt, model: p.model, merkleRoot: p.merkleRoot,
+        wallet: p.creator,
+        prompt: p.prompt,
+        model: p.model,
+        merkleRoot: p.merkleRoot,
         sequenceNumber: p.sequenceNumber,
-        submissionUrl: p.sequenceNumber ? `https://storagescan-galileo.0g.ai/submission/${p.sequenceNumber}` : undefined,
+        submissionUrl: p.sequenceNumber
+          ? `https://storagescan-galileo.0g.ai/submission/${p.sequenceNumber}`
+          : undefined,
         imageUrl: uploadedImage ?? undefined,
-        timestamp: new Date(Number(p.timestamp) * 1000).toISOString(),
+        timestamp: new Date(
+          Number(p.timestamp) * 1000
+        ).toISOString(),
       });
-    } finally { setPdfLoading(false); }
+    } finally {
+      setPdfLoading(false);
+    }
   }
 
   function handleReset() {
-    setStep("upload"); setUploadedImage(null); setOriginalBase64(null); setOriginalData(null);
-    setVerificationResult(null); setOriginalRoot(null); setModifiedRoot(null);
-    setError(null); setVerifyPhase("idle"); setTrace({});
+    setStep("upload");
+    setUploadedImage(null);
+    setOriginalBase64(null);
+    setOriginalData(null);
+    setVerificationResult(null);
+    setOriginalRoot(null);
+    setModifiedRoot(null);
+    setError(null);
+    setVerifyPhase("idle");
+    setTrace({});
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function statusFor(p: VerifyPhase): "pending" | "active" | "done" {
-    const o: VerifyPhase[] = ["idle","reading_file","hashing","connecting_rpc","querying_contract","done"];
-    const ci = o.indexOf(verifyPhase), pi = o.indexOf(p);
+    const o: VerifyPhase[] = [
+      "idle",
+      "reading_file",
+      "hashing",
+      "connecting_rpc",
+      "querying_contract",
+      "done",
+    ];
+    const ci = o.indexOf(verifyPhase),
+      pi = o.indexOf(p);
     return pi < ci ? "done" : pi === ci ? "active" : "pending";
   }
 
   function progressPercent(): number {
-    const phases: VerifyPhase[] = ["reading_file","hashing","connecting_rpc","querying_contract","done"];
+    const phases: VerifyPhase[] = [
+      "reading_file",
+      "hashing",
+      "connecting_rpc",
+      "querying_contract",
+      "done",
+    ];
     const idx = phases.indexOf(verifyPhase);
     if (idx < 0) return 0;
     if (verifyPhase === "done") return 100;
@@ -139,119 +242,409 @@ export default function VerifyPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Verify Authenticity</h1>
-        <p className="text-slate-400 max-w-md mx-auto">Upload an image. We compute its cryptographic fingerprint and query the 0G blockchain in real time.</p>
-      </div>
+    <div className="max-w-3xl mx-auto px-6 md:px-0 pb-24">
+      {/* Header */}
+      <section className="mb-16 pt-8">
+        <h1 className="font-[family-name:var(--font-newsreader)] text-5xl text-[#f0e0d1] mb-4">
+          Verify Authenticity
+        </h1>
+        <p className="text-lg text-[#d8c3ad] max-w-2xl leading-relaxed">
+          Upload any image to check its blockchain provenance and verify its
+          origin in our immutable ledger.
+        </p>
+      </section>
 
-      {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-8"><p className="text-red-400 text-sm">{error}</p></div>}
+      {error && (
+        <div className="bg-[#93000a]/10 border border-[#ffb4ab]/20 p-4 mb-8">
+          <p className="text-[#ffb4ab] text-sm">{error}</p>
+        </div>
+      )}
 
       {/* ═══════════ UPLOAD ═══════════ */}
       {step === "upload" && !uploadedImage && (
-        <div onClick={() => fileInputRef.current?.click()} className={cn("border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-300","border-slate-700/80 hover:border-cyan-500/50 hover:bg-slate-900/50","group")}>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-          <div className="text-6xl mb-5 group-hover:scale-110 transition-transform">🖼️</div>
-          <p className="text-lg font-medium text-slate-300 mb-2 group-hover:text-cyan-300">Click to upload an image</p>
-          <p className="text-sm text-slate-500">PNG, JPG, WebP — any format</p>
+        <div className="space-y-12">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "group relative flex flex-col items-center justify-center h-[400px]",
+              "bg-[#1a1a1a]/50 border border-white/5",
+              "transition-all duration-300 hover:bg-[#31281f] cursor-pointer"
+            )}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <div className="flex flex-col items-center text-center space-y-6">
+              <ImageIcon
+                className="w-16 h-16 text-[#a08e7a] group-hover:text-[#f59e0b] transition-colors"
+                strokeWidth={1}
+              />
+              <div className="space-y-2">
+                <p className="text-lg text-[#f0e0d1]">Click to upload an image</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#a08e7a]">
+                  PNG, JPG, WEBP
+                </p>
+              </div>
+            </div>
+            {/* Interactive Overlay Effect */}
+            <div className="absolute inset-0 border border-transparent group-hover:border-[#f59e0b]/20 transition-all pointer-events-none" />
+          </div>
+
+          {/* Forensic Details Section */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-white/5 pt-16">
+            <div className="space-y-4">
+              <Fingerprint
+                className="w-6 h-6 text-[#f59e0b]"
+                strokeWidth={1.5}
+              />
+              <h3 className="font-[family-name:var(--font-newsreader)] text-2xl text-[#f0e0d1]">
+                Hash Verification
+              </h3>
+              <p className="text-[#d8c3ad] leading-relaxed">
+                Every image is uniquely hashed using SHA-256 to ensure no
+                alteration has occurred since its initial registration.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <BookOpen
+                className="w-6 h-6 text-[#f59e0b]"
+                strokeWidth={1.5}
+              />
+              <h3 className="font-[family-name:var(--font-newsreader)] text-2xl text-[#f0e0d1]">
+                Immutable Logs
+              </h3>
+              <p className="text-[#d8c3ad] leading-relaxed">
+                We cross-reference metadata against on-chain records to provide
+                a complete ownership and creation timeline.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <Shield
+                className="w-6 h-6 text-[#f59e0b]"
+                strokeWidth={1.5}
+              />
+              <h3 className="font-[family-name:var(--font-newsreader)] text-2xl text-[#f0e0d1]">
+                Secure Sandbox
+              </h3>
+              <p className="text-[#d8c3ad] leading-relaxed">
+                Our verification process runs in an isolated environment,
+                protecting your original file&apos;s integrity and privacy.
+              </p>
+            </div>
+          </section>
         </div>
       )}
 
       {uploadedImage && step === "upload" && (
-        <div className="space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden"><img src={uploadedImage} alt="" className="w-full h-auto max-h-80 object-contain" /></div>
-          <div className="flex gap-4">
-            <button onClick={handleReset} className="flex-1 py-4 rounded-xl font-semibold border-2 border-slate-700 text-slate-300 hover:border-slate-600">← Change</button>
-            <button onClick={handleVerify} className="flex-1 py-4 rounded-xl font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25">🔍 Verify Authenticity</button>
+        <div className="space-y-8">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a08e7a] mb-6">
+            Selection Preview
+          </div>
+          <div className="bg-[#1a1a1a]/80 border border-white/5 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-8 w-full md:w-auto">
+              <div className="w-[120px] h-[120px] shrink-0 bg-black overflow-hidden ring-1 ring-white/10">
+                <img
+                  src={uploadedImage}
+                  alt="Provenance asset"
+                  className="w-full h-full object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-500"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg text-[#f0e0d1] mb-1">
+                  Uploaded image
+                </span>
+                <span className="text-sm text-[#a08e7a]">
+                  Ready for verification
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-8 w-full md:w-auto justify-end">
+              <button
+                onClick={handleReset}
+                className="text-[#d8c3ad] hover:text-[#f0e0d1] transition-colors"
+              >
+                Change
+              </button>
+              <button
+                onClick={handleVerify}
+                className="bg-[#f59e0b] text-[#2a1700] px-10 py-4 text-xs font-semibold uppercase tracking-[0.1em] hover:opacity-90 active:scale-95 transition-all flex items-center gap-3"
+              >
+                <Search className="w-4 h-4" />
+                Verify Authenticity
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* ═══════════ VERIFICANDO ═══════════ */}
       {step === "verifying" && (
-        <div>
+        <div className="space-y-6">
           {/* Barra de progreso */}
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-slate-400">Analysis progress</span>
-              <span className="text-xs font-mono text-cyan-400">{progressPercent()}%</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-[#888]">Analysis progress</span>
+              <span className="text-xs font-mono text-[#f59e0b]">
+                {progressPercent()}%
+              </span>
             </div>
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${progressPercent()}%` }} />
+            <div className="w-full h-1 bg-[#1a1a1a]">
+              <div
+                className="h-full bg-[#f59e0b] transition-all duration-500 ease-out"
+                style={{ width: `${progressPercent()}%` }}
+              />
             </div>
           </div>
-          {uploadedImage && <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden max-h-32 mb-4"><img src={uploadedImage} alt="" className="w-full h-32 object-cover opacity-30" /></div>}
-          <div className="space-y-4"><AnalysisSteps trace={trace} verificationResult={verificationResult} statusFor={statusFor} /></div>
+          {uploadedImage && (
+            <div className="bg-[#1a1a1a] border border-white/5 overflow-hidden max-h-32 mb-4">
+              <img
+                src={uploadedImage}
+                alt=""
+                className="w-full h-32 object-cover opacity-30"
+              />
+            </div>
+          )}
+          <div className="space-y-4">
+            <AnalysisSteps
+              trace={trace}
+              verificationResult={verificationResult}
+              statusFor={statusFor}
+            />
+          </div>
         </div>
       )}
 
       {/* ═══════════ RESULTADO + WOW ═══════════ */}
       {(step === "result" || step === "wow") && verificationResult && (
-        <div className="space-y-6">
-          {/* Acordeón del proceso */}
-          <button onClick={() => setShowAnalysis(!showAnalysis)} className={cn("w-full flex items-center justify-between rounded-xl border px-4 py-3 transition-colors", showAnalysis ? "border-cyan-500/30 bg-cyan-500/5" : "border-slate-700/50 bg-slate-900/30 hover:border-slate-600/50")}>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-300">{showAnalysis ? "🔽" : "▶"} Show analysis process</span>
-              <span className="text-[10px] font-mono text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">5/5 completed</span>
+        <div className="space-y-12">
+          {/* 1. SUCCESS / FAIL BANNER */}
+          <section className="text-center">
+            <div
+              className={cn(
+                "py-12 px-8 inline-block w-full",
+                verificationResult.verified
+                  ? "bg-[#1a1a1a]/50"
+                  : "bg-[#93000a]/5 border border-[#ffb4ab]/10"
+              )}
+            >
+              <div className="mb-6">
+                {verificationResult.verified ? (
+                  <ShieldCheck
+                    className="w-16 h-16 text-[#f59e0b] mx-auto"
+                    strokeWidth={1.5}
+                  />
+                ) : (
+                  <XCircle
+                    className="w-16 h-16 text-[#ffb4ab] mx-auto"
+                    strokeWidth={1.5}
+                  />
+                )}
+              </div>
+              <h2
+                className={cn(
+                  "font-[family-name:var(--font-newsreader)] text-4xl md:text-5xl mb-4",
+                  verificationResult.verified
+                    ? "text-[#f0e0d1]"
+                    : "text-[#ffb4ab]"
+                )}
+              >
+                {verificationResult.verified
+                  ? "Authenticity Confirmed"
+                  : "No Record Found"}
+              </h2>
+              <p className="text-[#d8c3ad] max-w-md mx-auto mb-6">
+                {verificationResult.message}
+              </p>
+              {verificationResult.verified && (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-[#f59e0b]" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#f59e0b]">
+                    Record found at block #{trace.blockNumber?.toLocaleString() || "—"}
+                  </span>
+                </div>
+              )}
             </div>
-            <span className="text-xs text-slate-500">{showAnalysis ? "Hide ▲" : "Expand ▼"}</span>
+          </section>
+
+          {/* Acordeón del proceso */}
+          <button
+            onClick={() => setShowAnalysis(!showAnalysis)}
+            className={cn(
+              "w-full flex items-center justify-between px-4 py-3 transition-colors border",
+              showAnalysis
+                ? "border-[#f59e0b]/20 bg-[#f59e0b]/5"
+                : "border-white/5 bg-[#141414]/30 hover:border-white/10"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#d8c3ad]">
+                {showAnalysis ? "Hide" : "Show"} analysis process
+              </span>
+              <span className="text-[10px] font-mono text-[#555] bg-[#1a1a1a] px-1.5 py-0.5">
+                5/5 completed
+              </span>
+            </div>
+            <ChevronDown
+              className={cn(
+                "w-4 h-4 text-[#888] transition-transform",
+                showAnalysis && "rotate-180"
+              )}
+            />
           </button>
 
           {showAnalysis && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="mb-1">
-                <div className="flex items-center justify-between mb-1"><span className="text-xs text-slate-500">Analysis complete</span><span className="text-xs font-mono text-green-400">100%</span></div>
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full w-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full" /></div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-[#555]">Analysis complete</span>
+                  <span className="text-xs font-mono text-[#f59e0b]">100%</span>
+                </div>
+                <div className="w-full h-1 bg-[#1a1a1a]">
+                  <div className="h-full w-full bg-[#f59e0b]" />
+                </div>
               </div>
-              <div className="space-y-4"><AnalysisSteps trace={trace} verificationResult={verificationResult} statusFor={() => "done" as const} /></div>
+              <div className="space-y-4">
+                <AnalysisSteps
+                  trace={trace}
+                  verificationResult={verificationResult}
+                  statusFor={() => "done" as const}
+                />
+              </div>
             </div>
           )}
 
-          {/* Resultado principal */}
-          <div className={cn("rounded-2xl p-8 text-center border", verificationResult.verified ? "bg-green-500/10 border-green-500/30 shadow-lg shadow-green-500/10" : "bg-red-500/5 border-red-500/20")}>
-            <div className="text-6xl mb-4">{verificationResult.verified ? "✅" : "❌"}</div>
-            <h2 className={cn("text-2xl font-bold mb-2", verificationResult.verified ? "text-green-400" : "text-red-400")}>{verificationResult.verified ? "Authenticity Confirmed" : "No Record Found"}</h2>
-            <p className="text-slate-400 text-sm">{verificationResult.message}</p>
-          </div>
+          {/* 2. MERKLE ROOT CARD */}
+          <section>
+            <div className="bg-[#141414] p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#a08e7a] mb-4">
+                CRYPTOGRAPHIC FINGERPRINT
+              </p>
+              <div className="font-mono text-lg break-all tracking-tight text-[#f0e0d1] mb-6 bg-black/30 p-4">
+                {verificationResult.merkleRoot}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-[#f59e0b]" />
+                <span className="text-sm text-[#d8c3ad]">
+                  SHA-256 verified locally and on-chain
+                </span>
+              </div>
+            </div>
+          </section>
 
-          {/* Merkle Root */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
-            <h3 className="font-semibold mb-3 text-slate-200">🔐 Cryptographic Fingerprint (Merkle Root)</h3>
-            <p className="text-xs text-slate-500 mb-3">Unique hash. If you change A SINGLE PIXEL, it changes completely.</p>
-            <div className="bg-slate-950 border border-slate-700 rounded-lg p-4"><code className="text-sm text-cyan-400 break-all font-mono">{verificationResult.merkleRoot}</code></div>
-          </div>
-
-          {/* Provenance */}
+          {/* 3. ON-CHAIN PROVENANCE DATA */}
           {verificationResult.verified && verificationResult.provenance && (
             <>
-              <div className="bg-gradient-to-br from-indigo-500/5 to-cyan-500/5 border border-indigo-500/20 rounded-2xl p-6">
-                <h3 className="font-bold text-lg mb-1 text-slate-100">⛓️ On-Chain Provenance Data</h3>
-                <p className="text-xs text-slate-500 mb-5">
-                  Immutably recorded on{" "}
-                  <code className="text-[11px] text-cyan-400 font-mono bg-slate-800 px-1.5 py-0.5 rounded">{shortenAddress(trace.contractAddress || "")}</code> · Bloque #{trace.blockNumber?.toLocaleString() || "?"}
-                </p>
-                <div className="grid gap-3 text-sm">
-                  <DataRow label="Creator" value={shortenAddress(verificationResult.provenance.creator)} isHash />
-                  <DataRow label="AI Model" value={verificationResult.provenance.model} />
-                  <DataRow label="Prompt" value={verificationResult.provenance.prompt} />
-                  <DataRow label="ZK Resource Key" value={verificationResult.provenance.zkResKey || "-"} isHash />
-                  <DataRow label="Sequence (txSeq)" value={verificationResult.provenance.sequenceNumber || "-"} mono />
-                  <DataRow label="Timestamp" value={new Date(Number(verificationResult.provenance.timestamp) * 1000).toLocaleString("en-US")} />
+              <section>
+                <div className="bg-[#141414] p-8">
+                  <div className="flex items-center gap-3 mb-8">
+                    <Link2
+                      className="w-5 h-5 text-[#f59e0b]"
+                      strokeWidth={1.5}
+                    />
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-[#f0e0d1]">
+                      ON-CHAIN PROVENANCE DATA
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                    <ProvenanceItem
+                      label="CREATOR"
+                      value={shortenAddress(verificationResult.provenance.creator)}
+                    />
+                    <ProvenanceItem
+                      label="AI MODEL"
+                      value={verificationResult.provenance.model}
+                    />
+                    <ProvenanceItem
+                      label="PROMPT"
+                      value={verificationResult.provenance.prompt}
+                    />
+                    <ProvenanceItem
+                      label="ZK RESOURCE KEY"
+                      value={verificationResult.provenance.zkResKey || "—"}
+                    />
+                    <ProvenanceItem
+                      label="SEQUENCE"
+                      value={verificationResult.provenance.sequenceNumber || "—"}
+                    />
+                    <ProvenanceItem
+                      label="TIMESTAMP"
+                      value={new Date(
+                        Number(verificationResult.provenance.timestamp) * 1000
+                      ).toLocaleString("en-US")}
+                    />
+                  </div>
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {verificationResult.provenance.sequenceNumber && (
+                      <a
+                        href={`https://storagescan-galileo.0g.ai/submission/${verificationResult.provenance.sequenceNumber}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 text-xs font-semibold bg-[#8fd5ff]/10 text-[#8fd5ff] hover:bg-[#8fd5ff]/20 border border-[#8fd5ff]/20 transition-colors flex items-center gap-2"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View on StorageScan
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {verificationResult.provenance.sequenceNumber && (
-                    <a href={`https://storagescan-galileo.0g.ai/submission/${verificationResult.provenance.sequenceNumber}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-2 text-xs font-semibold bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30">☁️ View on StorageScan</a>
-                  )}
-                </div>
-              </div>
-              <button onClick={handleDownloadPdf} disabled={pdfLoading} className={cn("w-full rounded-xl py-3.5 text-sm font-semibold border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20", "disabled:opacity-50")}>{pdfLoading ? "⏳ Generating..." : "📄 Download Certificate PDF"}</button>
+              </section>
+
+              {/* Download PDF */}
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className={cn(
+                  "w-full py-4 text-sm font-semibold transition-all flex items-center justify-center gap-2",
+                  "bg-[#f59e0b] text-[#0a0a0a] hover:opacity-90",
+                  "disabled:opacity-50"
+                )}
+              >
+                <Download className="w-4 h-4" />
+                {pdfLoading ? "Generating..." : "Download Certificate PDF"}
+              </button>
             </>
           )}
 
-          {/* ═══════════ WOW MOMENT ═══════════ */}
-          {step !== "wow" ? (
-            <button onClick={handleWowMoment} className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 shadow-lg shadow-purple-500/25">🤯 View Wow Moment: Change ONE PIXEL</button>
-          ) : (
+          {/* 4. WOW MOMENT TRIGGER */}
+          {step !== "wow" && (
+            <section>
+              <div className="bg-[#1e1e1e] p-10 relative overflow-hidden group">
+                <div className="relative z-10 max-w-md">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#888] mb-2">
+                    Experience the Proof
+                  </p>
+                  <h2 className="font-[family-name:var(--font-newsreader)] text-3xl text-[#f0e0d1] mb-4">
+                    The Wow Moment
+                  </h2>
+                  <p className="text-[#d8c3ad] mb-8 leading-relaxed">
+                    See what happens when just ONE pixel changes... Our
+                    cryptographic analysis is so precise that a single byte
+                    alteration invalidates the entire chain.
+                  </p>
+                  <button
+                    onClick={handleWowMoment}
+                    className="text-sm font-medium text-[#f0e0d1] hover:text-[#f59e0b] transition-colors flex items-center gap-2"
+                  >
+                    VIEW WOW MOMENT
+                    <ArrowRight className="w-4 h-4 text-[#f59e0b]" />
+                  </button>
+                </div>
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-30 group-hover:opacity-60 transition-opacity">
+                  <img
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTmG0ztIqEuy4QgPg8yAsI-HghEFP-UDfeVZVlK3lpSrbV1Ee4dZwBiTBizzFmEKcPQVEWWetsUGwdxCP1CdL8XtgwQWZiF6c3Yl3ET_iW4kzmZY4a4xxH_G2QKwk5cCSHkHr2aCQYROjoVDP6cv5uASIqN4lJGnPIr_IzhqSFUFZWdpXzMu5cSjuUCkgdIoev3lfB--_bIjmI7HeIBQLESMgq7jiWXIFaarA_UO47GfnCXp9104wWX1n8YNuK6ajFfo1raEIHOA"
+                    alt="Wow Moment Decor"
+                    className="w-full h-full object-cover grayscale"
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {step === "wow" && (
             <WowMoment
               originalRoot={originalRoot}
               modifiedRoot={modifiedRoot}
@@ -259,34 +652,128 @@ export default function VerifyPage() {
             />
           )}
 
-          <button onClick={handleReset} className="w-full py-4 rounded-xl font-semibold border-2 border-slate-700 text-slate-300 hover:border-slate-600">← Verify another image</button>
+          {/* Bottom action */}
+          <section className="text-center pt-8">
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center gap-2 text-[#888] hover:text-[#f0e0d1] transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Verify another image
+            </button>
+          </section>
         </div>
       )}
 
       {/* ═══════════ VERIFICACIÓN MANUAL ═══════════ */}
       {step === "upload" && (
-        <div className="mt-12">
-          <button onClick={() => setShowManual(!showManual)} className="w-full text-left flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-900/30 p-4 hover:border-slate-600/50">
-            <div><span className="text-sm font-semibold text-slate-300">📜 Have a PDF certificate?</span><p className="text-xs text-slate-500 mt-0.5">Verify manually by pasting the Merkle Root</p></div>
-            <span className={cn("text-slate-500 transition-transform", showManual && "rotate-180")}>▼</span>
+        <div className="mt-16">
+          <button
+            onClick={() => setShowManual(!showManual)}
+            className="w-full text-left flex items-center justify-between px-4 py-4 border border-white/5 bg-[#141414]/30 hover:border-white/10 transition-colors"
+          >
+            <div>
+              <span className="text-sm font-medium text-[#d8c3ad]">
+                Have a PDF certificate?
+              </span>
+              <p className="text-xs text-[#888] mt-0.5">
+                Verify manually by pasting the Merkle Root
+              </p>
+            </div>
+            <ChevronDown
+              className={cn(
+                "w-4 h-4 text-[#888] transition-transform",
+                showManual && "rotate-180"
+              )}
+            />
           </button>
           {showManual && (
-            <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-900/30 p-5 space-y-4">
-              <label className="block text-sm font-medium text-slate-300">Paste your Merkle Root</label>
+            <div className="mt-3 border border-white/5 bg-[#141414]/30 p-6 space-y-4">
+              <label className="block text-sm font-medium text-[#d8c3ad]">
+                Paste your Merkle Root
+              </label>
               <div className="flex gap-3">
-                <input type="text" value={manualRoot} onChange={e => setManualRoot(e.target.value)} placeholder="0x..." className={cn("flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-sm text-slate-200 font-mono","focus:outline-none focus:ring-2 focus:ring-cyan-500/50","placeholder:text-slate-600")} />
-                <button onClick={handleManualVerify} disabled={!manualRoot.trim() || manualLoading} className={cn("rounded-lg px-5 py-3 text-sm font-semibold shrink-0", manualRoot.trim() ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400" : "bg-slate-800 text-slate-600 cursor-not-allowed")}>{manualLoading ? "⏳" : "Verify"}</button>
+                <input
+                  type="text"
+                  value={manualRoot}
+                  onChange={(e) => setManualRoot(e.target.value)}
+                  placeholder="0x..."
+                  className={cn(
+                    "flex-1 bg-[#0a0a0a] border border-white/5 px-4 py-3 text-sm text-[#f0e0d1] font-mono",
+                    "focus:outline-none focus:border-[#f59e0b]/30",
+                    "placeholder:text-[#555]"
+                  )}
+                />
+                <button
+                  onClick={handleManualVerify}
+                  disabled={!manualRoot.trim() || manualLoading}
+                  className={cn(
+                    "px-5 py-3 text-sm font-semibold shrink-0 transition-all",
+                    manualRoot.trim()
+                      ? "bg-[#f59e0b] text-[#0a0a0a] hover:bg-[#ffb95f]"
+                      : "bg-[#1a1a1a] text-[#555] cursor-not-allowed"
+                  )}
+                >
+                  {manualLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Verify"
+                  )}
+                </button>
               </div>
               {manualResult && (
-                <div className={cn("rounded-lg p-4 text-sm", manualResult.verified ? "bg-green-500/10 border border-green-500/20 text-green-300" : "bg-red-500/5 border border-red-500/20 text-red-300")}>
-                  <p className="font-semibold mb-1">{manualResult.verified ? "✅ Confirmed" : "❌ No record"}</p>
+                <div
+                  className={cn(
+                    "p-4 text-sm",
+                    manualResult.verified
+                      ? "bg-[#f59e0b]/5 border border-[#f59e0b]/20 text-[#f0e0d1]"
+                      : "bg-[#93000a]/5 border border-[#ffb4ab]/10 text-[#ffb4ab]"
+                  )}
+                >
+                  <p className="font-semibold mb-1">
+                    {manualResult.verified ? "Confirmed" : "No record"}
+                  </p>
                   <p className="text-xs opacity-75">{manualResult.message}</p>
-                  {manualResult.provenance && <div className="mt-2 text-xs text-slate-400 space-y-1"><p>Creator: {shortenAddress(manualResult.provenance.creator)}</p><p>Model: {manualResult.provenance.model}</p>{manualResult.provenance.sequenceNumber && <p>Sequence: {manualResult.provenance.sequenceNumber}</p>}</div>}
+                  {manualResult.provenance && (
+                    <div className="mt-2 text-xs text-[#888] space-y-1">
+                      <p>
+                        Creator:{" "}
+                        {shortenAddress(manualResult.provenance.creator)}
+                      </p>
+                      <p>Model: {manualResult.provenance.model}</p>
+                      {manualResult.provenance.sequenceNumber && (
+                        <p>
+                          Sequence: {manualResult.provenance.sequenceNumber}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
         </div>
+      )}
+
+      {/* Footer Note */}
+      {step === "upload" && (
+        <footer className="w-full py-12 flex flex-col items-center border-t border-white/5 mt-16">
+          <p className="text-sm text-[#a08e7a] text-center mb-4">
+            Your image is processed locally. Nothing is uploaded without your
+            consent.
+          </p>
+          <div className="flex space-x-8">
+            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#a08e7a]">
+              Privacy Policy
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#a08e7a]">
+              Protocol Specs
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#a08e7a]">
+              Support
+            </span>
+          </div>
+        </footer>
       )}
     </div>
   );
@@ -294,40 +781,211 @@ export default function VerifyPage() {
 
 // ═══════════ COMPONENTES ═══════════
 
-function AnalysisSteps({ trace, verificationResult, statusFor }: { trace: LiveTrace; verificationResult: VerificationResult | null; statusFor: (p: VerifyPhase) => "pending" | "active" | "done" }) {
+function AnalysisSteps({
+  trace,
+  verificationResult,
+  statusFor,
+}: {
+  trace: LiveTrace;
+  verificationResult: VerificationResult | null;
+  statusFor: (p: VerifyPhase) => "pending" | "active" | "done";
+}) {
+  const steps: {
+    phase: VerifyPhase;
+    icon: React.ReactNode;
+    label: string;
+    detail: string;
+    result?: string;
+    meta?: (string | undefined)[];
+  }[] = [
+    {
+      phase: "reading_file",
+      icon: <FileSearch className="w-5 h-5" />,
+      label: "Reading image file",
+      detail: trace.fileSize
+        ? `Size detected: ${trace.fileSize}`
+        : "Analyzing file metadata...",
+    },
+    {
+      phase: "hashing",
+      icon: <Fingerprint className="w-5 h-5" />,
+      label: "Computing cryptographic fingerprint (Merkle Tree)",
+      detail: "Building Merkle Tree over file segments...",
+      result: trace.merkleRoot,
+    },
+    {
+      phase: "connecting_rpc",
+      icon: <Link2 className="w-5 h-5" />,
+      label: "Connecting to 0G Chain",
+      detail: trace.rpcUrl
+        ? `RPC: ${trace.rpcUrl}`
+        : "Establishing connection to RPC node...",
+      meta: [
+        trace.chainId ? `Chain ID: ${trace.chainId}` : undefined,
+        trace.blockNumber
+          ? `Current block: #${trace.blockNumber.toLocaleString()}`
+          : undefined,
+      ],
+    },
+    {
+      phase: "querying_contract",
+      icon: <Search className="w-5 h-5" />,
+      label: "Querying smart contract",
+      detail: "Looking up provenance record in on-chain mapping...",
+      meta: [
+        trace.contractAddress
+          ? `Contract: ${shortenAddress(trace.contractAddress)}`
+          : undefined,
+        trace.querySelector,
+      ],
+    },
+    {
+      phase: "done",
+      icon: verificationResult?.verified ? (
+        <CheckCircle2 className="w-5 h-5" />
+      ) : (
+        <XCircle className="w-5 h-5" />
+      ),
+      label: verificationResult?.verified
+        ? "Record found on-chain!"
+        : "Record NOT found",
+      detail: verificationResult?.verified
+        ? "Merkle Root matches an immutable on-chain record."
+        : "This Merkle Root does not exist in the contract.",
+    },
+  ];
+
   return (
     <>
-      <VerifyStep icon="📂" label="Reading image file" status={statusFor("reading_file")} detail={trace.fileSize ? `Size detected: ${trace.fileSize}` : "Analyzing file metadata..."} />
-      <VerifyStep icon="🔐" label="Computing cryptographic fingerprint (Merkle Tree)" status={statusFor("hashing")} detail="Building Merkle Tree over file segments..." result={trace.merkleRoot} />
-      <VerifyStep icon="🌐" label="Connecting to 0G Chain" status={statusFor("connecting_rpc")} detail={trace.rpcUrl ? `RPC: ${trace.rpcUrl}` : "Establishing connection to RPC node..."} meta={[trace.chainId ? `Chain ID: ${trace.chainId}` : undefined, trace.blockNumber ? `Current block: #${trace.blockNumber.toLocaleString()}` : undefined]} />
-      <VerifyStep icon="⛓️" label="Querying smart contract" status={statusFor("querying_contract")} detail="Looking up provenance record in on-chain mapping..." meta={[trace.contractAddress ? `Contract: ${shortenAddress(trace.contractAddress)}` : undefined, trace.querySelector]} />
-      <VerifyStep icon={verificationResult?.verified ? "✅" : "❌"} label={verificationResult?.verified ? "Record found on-chain!" : "Record NOT found"} status={statusFor("done")} detail={verificationResult?.verified ? "Merkle Root matches an immutable on-chain record." : "This Merkle Root does not exist in the contract."} />
+      {steps.map((s) => (
+        <VerifyStep
+          key={s.phase}
+          icon={s.icon}
+          label={s.label}
+          detail={s.detail}
+          status={statusFor(s.phase)}
+          result={s.result}
+          meta={s.meta}
+        />
+      ))}
     </>
   );
 }
 
-function VerifyStep({ icon, label, detail, status, result, meta }: { icon: string; label: string; detail: string; status: "pending" | "active" | "done"; result?: string; meta?: (string | undefined)[] }) {
+function VerifyStep({
+  icon,
+  label,
+  detail,
+  status,
+  result,
+  meta,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  detail: string;
+  status: "pending" | "active" | "done";
+  result?: string;
+  meta?: (string | undefined)[];
+}) {
   return (
-    <div className={cn("rounded-xl border p-4 transition-all duration-300", status === "active" && "border-cyan-500/40 bg-cyan-500/5 shadow-lg shadow-cyan-500/10", status === "done" && "border-green-500/30 bg-green-500/5", status === "pending" && "border-slate-700/50 bg-slate-900/30 opacity-35")}>
+    <div
+      className={cn(
+        "border p-4 transition-all duration-300",
+        status === "active" &&
+          "border-[#f59e0b]/40 bg-[#f59e0b]/5",
+        status === "done" &&
+          (label.includes("NOT")
+            ? "border-[#ffb4ab]/30 bg-[#ffb4ab]/5"
+            : "border-[#f59e0b]/30 bg-[#f59e0b]/5"),
+        status === "pending" && "border-white/5 bg-[#0a0a0a]/30 opacity-35"
+      )}
+    >
       <div className="flex items-start gap-3">
-        <div className={cn("text-xl shrink-0 w-9 h-9 flex items-center justify-center rounded-lg mt-0.5", status === "active" && "animate-pulse bg-cyan-500/10", status === "done" && "bg-green-500/10", status === "pending" && "bg-slate-800")}>{icon}</div>
+        <div
+          className={cn(
+            "shrink-0 w-9 h-9 flex items-center justify-center mt-0.5",
+            status === "active" && "text-[#f59e0b] bg-[#f59e0b]/10",
+            status === "done" &&
+              (label.includes("NOT")
+                ? "text-[#ffb4ab] bg-[#ffb4ab]/10"
+                : "text-[#f59e0b] bg-[#f59e0b]/10"),
+            status === "pending" && "text-[#555] bg-[#1a1a1a]"
+          )}
+        >
+          {icon}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className={cn("text-sm font-semibold", status === "active" && "text-cyan-300", status === "done" && "text-green-300", status === "pending" && "text-slate-500")}>{label}</p>
-            {status === "active" && <span className="text-xs text-cyan-400 animate-pulse">⏳</span>}
-            {status === "done" && <span className="text-xs text-green-400">✓</span>}
+            <p
+              className={cn(
+                "text-sm font-semibold",
+                status === "active" && "text-[#f59e0b]",
+                status === "done" &&
+                  (label.includes("NOT")
+                    ? "text-[#ffb4ab]"
+                    : "text-[#f0e0d1]"),
+                status === "pending" && "text-[#555]"
+              )}
+            >
+              {label}
+            </p>
+            {status === "active" && (
+              <Loader2 className="w-3 h-3 text-[#f59e0b] animate-spin" />
+            )}
+            {status === "done" && !label.includes("NOT") && (
+              <CheckCircle2 className="w-3 h-3 text-[#f59e0b]" />
+            )}
           </div>
-          <p className={cn("text-xs mt-0.5", status === "active" ? "text-cyan-400/80" : status === "done" ? "text-slate-400" : "text-slate-600")}>{detail}</p>
-          {meta && meta.filter(Boolean).length > 0 && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">{meta.filter(Boolean).map((m, i) => <span key={i} className="text-[10px] font-mono text-slate-500 bg-slate-800/50 px-1.5 py-0.5 rounded">{m}</span>)}</div>}
-          {status === "done" && result && <div className="mt-2 bg-slate-950 border border-slate-700/50 rounded-lg px-2.5 py-1.5"><code className="text-[11px] text-cyan-400 break-all font-mono leading-relaxed">{result}</code></div>}
+          <p
+            className={cn(
+              "text-xs mt-0.5",
+              status === "active"
+                ? "text-[#f59e0b]/80"
+                : status === "done"
+                ? "text-[#888]"
+                : "text-[#555]"
+            )}
+          >
+            {detail}
+          </p>
+          {meta && meta.filter(Boolean).length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {meta
+                .filter(Boolean)
+                .map((m, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] font-mono text-[#555] bg-[#1a1a1a]/50 px-1.5 py-0.5"
+                  >
+                    {m}
+                  </span>
+                ))}
+            </div>
+          )}
+          {status === "done" && result && (
+            <div className="mt-2 bg-[#0a0a0a] border border-white/5 px-2.5 py-1.5">
+              <code className="text-[11px] text-[#f59e0b] break-all font-mono leading-relaxed">
+                {result}
+              </code>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function DataRow({ label, value, isHash = false, mono = false }: { label: string; value: string; isHash?: boolean; mono?: boolean }) {
-  return <div className="flex flex-col sm:flex-row sm:items-start gap-1.5"><span className="text-slate-500 shrink-0 w-32 text-xs">{label}:</span><span className={cn("text-slate-300 text-xs", (isHash || mono) && "font-mono text-[11px] break-all")}>{value}</span></div>;
+function ProvenanceItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wider text-[#888] mb-1">
+        {label}
+      </p>
+      <p className="text-sm text-[#f0e0d1] font-mono truncate">{value}</p>
+    </div>
+  );
 }
 
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}

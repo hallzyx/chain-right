@@ -166,14 +166,14 @@ export async function verifyProvenance(merkleRoot: string): Promise<Verification
       verified: true,
       merkleRoot,
       provenance,
-      message: "✅ Authenticity confirmed. This image is registered on ChainRight.",
+      message: "Authenticity confirmed. This image is registered on ChainRight. ",
     };
   }
 
   return {
     verified: false,
     merkleRoot,
-    message: "❌ No record found. This image was not registered on ChainRight.",
+    message: "No record found. This image was not registered on ChainRight.",
   };
 }
 

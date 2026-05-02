@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 interface WowMomentProps {
   originalRoot: string | null;
@@ -10,17 +11,14 @@ interface WowMomentProps {
 }
 
 /**
- * Experiencia visual "Wow Moment" que demuestra cómo modificar
- * UN SOLO PÍXEL cambia COMPLETAMENTE el hash criptográfico.
- *
- * Features:
- * - Split-screen con imagen original vs modificada (idénticas al ojo)
- * - Diff animado carácter por carácter de los dos hashes
- * - Contador de similitud con animación de caída
- * - Indicador visual del píxel modificado
- * - Scan line forense
+ * Experiencia visual "Wow Moment" — Black & Amber Edition.
+ * Demuestra cómo modificar UN SOLO PÍXEL cambia COMPLETAMENTE el hash.
  */
-export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMomentProps) {
+export function WowMoment({
+  originalRoot,
+  modifiedRoot,
+  originalImage,
+}: WowMomentProps) {
   const [showDiff, setShowDiff] = useState(false);
   const [similarity, setSimilarity] = useState(100);
   const [scanPos, setScanPos] = useState(0);
@@ -37,7 +35,6 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
   useEffect(() => {
     const t1 = setTimeout(() => setShowDiff(true), 600);
     const t2 = setTimeout(() => {
-      // Animar contador de similitud hacia 0
       const animate = () => {
         setSimilarity((prev) => {
           const next = prev - (prev > 10 ? prev * 0.08 : 1);
@@ -48,7 +45,10 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
       };
       requestAnimationFrame(animate);
     }, 1200);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
 
   // Calcular diff real
@@ -57,88 +57,118 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
   const totalChars = diff.length || 1;
 
   return (
-    <div className="bg-gradient-to-br from-purple-950/60 via-slate-950 to-pink-950/60 border border-purple-500/30 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/10">
+    <div className="bg-[#141414] border border-white/5 overflow-hidden">
       {/* Header */}
-      <div className="text-center px-6 pt-6 pb-2">
-        <h3 className="text-xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent mb-1">
-          🤯 Wow Moment: 1 Single Pixel = Total Change
+      <div className="text-center px-6 pt-8 pb-4">
+        <h3 className="text-xl font-[family-name:var(--font-newsreader)] text-[#f0e0d1] mb-2">
+          Wow Moment: 1 Single Pixel = Total Change
         </h3>
-        <p className="text-sm text-slate-400">
-          We modified <strong className="text-pink-300">1 byte</strong> of the file.
-          The images look <strong className="text-cyan-300">identical</strong> to the human eye.
+        <p className="text-sm text-[#888]">
+          We modified <strong className="text-[#f59e0b]">1 byte</strong> of the
+          file. The images look <strong className="text-[#8fd5ff]">identical</strong>{" "}
+          to the human eye.
         </p>
       </div>
 
       {/* Split-screen con imágenes + scan line */}
-      <div className="relative grid grid-cols-2 gap-px mx-6 mt-4 rounded-xl overflow-hidden border border-slate-700/50 bg-slate-900">
+      <div className="relative grid grid-cols-2 gap-px mx-6 mt-4 overflow-hidden border border-white/5 bg-[#0a0a0a]">
         {/* Scan line */}
         <div
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
-            background: `linear-gradient(to bottom, transparent ${scanPos - 0.5}%, rgba(139,92,246,0.15) ${scanPos}%, transparent ${scanPos + 0.5}%)`,
+            background: `linear-gradient(to bottom, transparent ${scanPos - 0.5}%, rgba(245,158,11,0.15) ${scanPos}%, transparent ${scanPos + 0.5}%)`,
           }}
         />
 
         {/* Original */}
-        <div className="relative bg-slate-950 p-3">
-          <div className="absolute top-2 left-2 z-20 bg-green-500/20 border border-green-500/30 rounded-md px-2 py-0.5 text-[10px] font-bold text-green-400">
+        <div className="relative bg-[#0a0a0a] p-3">
+          <div className="absolute top-2 left-2 z-20 bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-0.5 text-[10px] font-bold text-[#f59e0b]">
             ORIGINAL
           </div>
           {originalImage ? (
-            <img src={originalImage} alt="Original" className="w-full h-48 object-contain opacity-80" />
+            <img
+              src={originalImage}
+              alt="Original"
+              className="w-full h-48 object-contain opacity-80"
+            />
           ) : (
-            <div className="w-full h-48 flex items-center justify-center text-slate-600 text-xs">No image</div>
+            <div className="w-full h-48 flex items-center justify-center text-[#555] text-xs">
+              No image
+            </div>
           )}
           {/* Píxel modificado indicator */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-            <div className="w-6 h-6 rounded-full border-2 border-green-400/60 animate-ping" />
+            <div className="w-6 h-6 border-2 border-[#f59e0b]/60 animate-ping" />
           </div>
         </div>
 
         {/* Modificada */}
-        <div className="relative bg-slate-950 p-3">
-          <div className="absolute top-2 right-2 z-20 bg-red-500/20 border border-red-500/30 rounded-md px-2 py-0.5 text-[10px] font-bold text-red-400">
+        <div className="relative bg-[#0a0a0a] p-3">
+          <div className="absolute top-2 right-2 z-20 bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 px-2 py-0.5 text-[10px] font-bold text-[#ffb4ab]">
             MODIFIED
           </div>
           {originalImage ? (
-            <img src={originalImage} alt="Modificada" className="w-full h-48 object-contain opacity-80" />
+            <img
+              src={originalImage}
+              alt="Modificada"
+              className="w-full h-48 object-contain opacity-80"
+            />
           ) : (
-            <div className="w-full h-48 flex items-center justify-center text-slate-600 text-xs">No image</div>
+            <div className="w-full h-48 flex items-center justify-center text-[#555] text-xs">
+              No image
+            </div>
           )}
           {/* Píxel modificado indicator */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-            <div className="w-6 h-6 rounded-full border-2 border-pink-400/80 animate-ping" />
-            <div className="absolute inset-0 w-3 h-3 rounded-full bg-pink-500/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+            <div className="w-6 h-6 border-2 border-[#ffb4ab]/80 animate-ping" />
+            <div className="absolute inset-0 w-3 h-3 bg-[#ffb4ab]/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
           </div>
         </div>
       </div>
 
       {/* Separador visual */}
       <div className="flex items-center gap-2 px-6 mt-4">
-        <div className="flex-1 h-px bg-slate-700" />
-        <span className="text-[10px] text-slate-500 font-mono">CRYPTOGRAPHIC ANALYSIS</span>
-        <div className="flex-1 h-px bg-slate-700" />
+        <div className="flex-1 h-px bg-[#333]" />
+        <span className="text-[10px] text-[#555] font-mono uppercase tracking-widest">
+          CRYPTOGRAPHIC ANALYSIS
+        </span>
+        <div className="flex-1 h-px bg-[#333]" />
       </div>
 
       {/* Hash Diff animado */}
-      <div className={cn("px-6 pt-3 pb-4 transition-all duration-500", showDiff ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")}>
+      <div
+        className={cn(
+          "px-6 pt-3 pb-4 transition-all duration-500",
+          showDiff
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-4"
+        )}
+      >
         <div className="grid grid-cols-2 gap-4 mb-3">
           {/* Hash original */}
           <div>
-            <p className="text-[10px] text-green-400 font-bold mb-1.5">🟢 ORIGINAL HASH</p>
-            <div className="bg-slate-950/80 border border-slate-700/50 rounded-lg p-3">
+            <p className="text-[10px] text-[#f59e0b] font-bold mb-1.5">
+              ORIGINAL HASH
+            </p>
+            <div className="bg-[#0a0a0a] border border-white/5 p-3">
               <code className="text-[11px] leading-relaxed break-all font-mono">
-                {originalRoot ? renderDiffRow(diff, "top") : "Calculando..."}
+                {originalRoot
+                  ? renderDiffRow(diff, "top")
+                  : "Calculating..."}
               </code>
             </div>
           </div>
 
           {/* Hash modificado */}
           <div>
-            <p className="text-[10px] text-red-400 font-bold mb-1.5">🔴 MODIFIED HASH</p>
-            <div className="bg-slate-950/80 border border-slate-700/50 rounded-lg p-3">
+            <p className="text-[10px] text-[#ffb4ab] font-bold mb-1.5">
+              MODIFIED HASH
+            </p>
+            <div className="bg-[#0a0a0a] border border-white/5 p-3">
               <code className="text-[11px] leading-relaxed break-all font-mono">
-                {modifiedRoot ? renderDiffRow(diff, "bottom") : "Computing..."}
+                {modifiedRoot
+                  ? renderDiffRow(diff, "bottom")
+                  : "Computing..."}
               </code>
             </div>
           </div>
@@ -147,35 +177,39 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
         {/* Leyenda */}
         <div className="flex gap-4 text-[10px] justify-center mb-3">
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-green-500/40 inline-block" /> Match
+            <span className="w-2.5 h-2.5 bg-[#f59e0b]/40 inline-block" />{" "}
+            Match
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-red-500/40 inline-block" /> Different
+            <span className="w-2.5 h-2.5 bg-[#ffb4ab]/40 inline-block" />{" "}
+            Different
           </span>
         </div>
       </div>
 
       {/* Estadísticas */}
-      <div className={cn("px-6 pb-4 transition-all duration-700", showDiff ? "opacity-100" : "opacity-0")}>
-        <div className="bg-slate-900/70 border border-purple-500/20 rounded-xl p-4">
+      <div
+        className={cn(
+          "px-6 pb-4 transition-all duration-700",
+          showDiff ? "opacity-100" : "opacity-0"
+        )}
+      >
+        <div className="bg-[#0a0a0a] border border-white/5 p-4">
           <div className="grid grid-cols-3 gap-4 text-center">
             <StatBox
               label="Chars Compared"
               value={String(totalChars)}
-              color="text-slate-400"
-              animate
+              color="text-[#888]"
             />
             <StatBox
               label="Matching Chars"
               value={String(matchingChars)}
-              color="text-green-400"
-              animate
+              color="text-[#f59e0b]"
             />
             <StatBox
               label="Cryptographic Similarity"
               value={`${similarity.toFixed(2)}%`}
-              color={similarity < 5 ? "text-red-400" : "text-yellow-400"}
-              animate
+              color={similarity < 5 ? "text-[#ffb4ab]" : "text-[#f59e0b]"}
               highlight
             />
           </div>
@@ -183,18 +217,27 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
       </div>
 
       {/* Conclusión */}
-      <div className={cn("px-6 pb-6 text-center transition-all duration-1000 delay-300", showDiff ? "opacity-100" : "opacity-0")}>
-        <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
-          <p className="text-base font-bold text-purple-300 mb-1">
-            The hashes are <span className="text-pink-400">COMPLETELY DIFFERENT</span>
+      <div
+        className={cn(
+          "px-6 pb-8 text-center transition-all duration-1000 delay-300",
+          showDiff ? "opacity-100" : "opacity-0"
+        )}
+      >
+        <div className="bg-[#f59e0b]/5 border border-[#f59e0b]/20 p-4">
+          <p className="text-base font-bold text-[#f0e0d1] mb-1">
+            The hashes are{" "}
+            <span className="text-[#ffb4ab]">COMPLETELY DIFFERENT</span>
           </p>
-          <p className="text-xs text-slate-400 max-w-lg mx-auto">
-            This is why it is <strong className="text-cyan-300">cryptographically impossible</strong> to forge
-            a work registered on ChainRight. If you change a single byte of the file,
-            the resulting hash won't match any on-chain record.
+          <p className="text-xs text-[#888] max-w-lg mx-auto leading-relaxed">
+            This is why it is{" "}
+            <strong className="text-[#8fd5ff]">cryptographically impossible</strong>{" "}
+            to forge a work registered on ChainRight. If you change a single
+            byte of the file, the resulting hash won&apos;t match any on-chain
+            record.
             <br />
-            <span className="text-slate-500 mt-1 block">
-              This is how SHA-256 + Merkle Trees work. The blockchain doesn't lie.
+            <span className="text-[#555] mt-1 block">
+              This is how SHA-256 + Merkle Trees work. The blockchain
+              doesn&apos;t lie.
             </span>
           </p>
         </div>
@@ -206,7 +249,8 @@ export function WowMoment({ originalRoot, modifiedRoot, originalImage }: WowMome
 // ═══════════ HELPERS ═══════════
 
 interface DiffChar {
-  char: string;
+  origChar: string;
+  modChar: string;
   match: boolean;
   index: number;
 }
@@ -218,26 +262,45 @@ function computeHashDiff(a: string, b: string): DiffChar[] {
   for (let i = 0; i < max; i++) {
     const ca = a[i] || "";
     const cb = b[i] || "";
-    result.push({ char: ca || cb, match: ca === cb, index: i });
+    result.push({
+      origChar: ca,
+      modChar: cb,
+      match: ca === cb,
+      index: i,
+    });
   }
   return result;
 }
 
-/** Renderiza una fila del diff con colores. */
-function renderDiffRow(diff: DiffChar[], _which: "top" | "bottom"): React.ReactNode {
+/** Renderiza una fila del diff con colores.
+ *  ORIGINAL (top): caracteres que se modificarán → ámbar
+ *  MODIFICADO (bottom): caracteres cambiados → rosa
+ *  Iguales en ambos → gris tenue
+ */
+function renderDiffRow(
+  diff: DiffChar[],
+  which: "top" | "bottom"
+): React.ReactNode {
   return (
     <span className="inline-flex flex-wrap gap-px">
-      {diff.map((d) => (
-        <span
-          key={d.index}
-          className={cn(
-            "inline-block w-[7px] text-center",
-            d.match ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10",
-          )}
-        >
-          {d.char}
-        </span>
-      ))}
+      {diff.map((d) => {
+        const char = which === "top" ? d.origChar : d.modChar;
+        return (
+          <span
+            key={d.index}
+            className={cn(
+              "inline-block w-[7px] text-center transition-colors duration-300",
+              d.match
+                ? "text-[#555]"
+                : which === "top"
+                  ? "text-[#f59e0b] bg-[#f59e0b]/15 font-bold"
+                  : "text-[#ffb4ab] bg-[#ffb4ab]/15 font-bold"
+            )}
+          >
+            {char}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -246,25 +309,27 @@ function StatBox({
   label,
   value,
   color,
-  animate: _animate,
   highlight = false,
 }: {
   label: string;
   value: string;
   color: string;
-  animate?: boolean;
   highlight?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className={cn(
-        "text-xl font-bold font-mono tabular-nums",
-        color,
-        highlight && "text-2xl",
-      )}>
+      <span
+        className={cn(
+          "font-bold font-mono tabular-nums",
+          color,
+          highlight ? "text-2xl" : "text-xl"
+        )}
+      >
         {value}
       </span>
-      <span className="text-[10px] text-slate-500 leading-tight max-w-[80px]">{label}</span>
+      <span className="text-[10px] text-[#555] leading-tight max-w-[80px]">
+        {label}
+      </span>
     </div>
   );
 }
