@@ -432,6 +432,7 @@ export default function CreatePage() {
              contractAddress={process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}
              submissionUrl={storageResult?.submissionUrl}
              sequenceNumber={storageResult?.sequenceNumber}
+             storageTxHash={storageResult?.transactionHash}
            />
 
           <a

@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { cn, shortenAddress } from "@/lib/utils";
+import { downloadCertificatePdf } from "@/lib/certificate-pdf";
 
 interface Props {
   imageUrl?: string;
@@ -13,6 +15,8 @@ interface Props {
   contractAddress?: string;
   submissionUrl?: string;
   sequenceNumber?: string;
+  /** Hash de la tx de storage (distinto del mint tx hash). */
+  storageTxHash?: string;
 }
 
 /**
@@ -29,7 +33,10 @@ export function CertificateCard({
   contractAddress,
   submissionUrl,
   sequenceNumber,
+  storageTxHash,
 }: Props) {
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   const explorer = txHash
     ? `https://chainscan-galileo.0g.ai/tx/${txHash}`
     : undefined;
@@ -45,6 +52,30 @@ export function CertificateCard({
   // Usamos submissionUrl si está disponible (preferido: /submission/[sequence])
   // Si no, usamos el por merkle root (fallback)
   const storageScan = submissionUrl || storageScanByRoot;
+
+  /** Descarga el certificado PDF con toda la metadata. */
+  async function handleDownloadPdf() {
+    setPdfLoading(true);
+    try {
+      await downloadCertificatePdf({
+        tokenId,
+        contractAddress,
+        wallet,
+        prompt,
+        model,
+        merkleRoot,
+        sequenceNumber,
+        storageTxHash,
+        mintTxHash: txHash,
+        submissionUrl,
+        nftUrl,
+        imageUrl,
+        timestamp: new Date().toISOString(),
+      });
+    } finally {
+      setPdfLoading(false);
+    }
+  }
 
   return (
     <section className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-[#111A38]/90 to-[#1A0F35]/80 p-6 shadow-lg shadow-indigo-900/20">
@@ -126,6 +157,22 @@ export function CertificateCard({
                 Ver en StorageScan
               </a>
             )}
+          </div>
+
+          {/* Botón de descarga de certificado PDF */}
+          <div className="pt-2">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={pdfLoading}
+              className={cn(
+                "w-full rounded-lg px-3 py-2.5 text-xs font-semibold transition-all",
+                "border border-rose-500/30 bg-rose-500/10 text-rose-200",
+                "hover:bg-rose-500/20 hover:border-rose-500/50",
+                "disabled:opacity-50 disabled:cursor-wait"
+              )}
+            >
+              {pdfLoading ? "⏳ Generando PDF..." : "📄 Descargar Certificado PDF"}
+            </button>
           </div>
 
           <details className="pt-2">

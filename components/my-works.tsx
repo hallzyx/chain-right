@@ -48,6 +48,7 @@ return (
              contractAddress={work.contractAddress}
              submissionUrl={work.submissionUrl}
              sequenceNumber={work.sequenceNumber}
+             storageTxHash={work.storageTxHash}
            />
          </div>
       </div>
