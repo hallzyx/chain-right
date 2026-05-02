@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ChainRight | Provenance for AI Art</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Inter:wght@300;400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#1c1b1b",
+                    "secondary-container": "#4a4949",
+                    "surface-tint": "#ffb95f",
+                    "error": "#ffb4ab",
+                    "on-surface-variant": "#d8c3ad",
+                    "on-primary": "#472a00",
+                    "on-primary-container": "#613b00",
+                    "inverse-primary": "#855300",
+                    "on-secondary-container": "#bab8b7",
+                    "tertiary-fixed": "#c5e7ff",
+                    "on-error": "#690005",
+                    "surface-container": "#261e15",
+                    "secondary": "#c9c6c5",
+                    "surface-container-highest": "#3c3329",
+                    "tertiary-fixed-dim": "#7fd0ff",
+                    "on-tertiary-fixed-variant": "#004c6a",
+                    "on-secondary": "#313030",
+                    "outline": "#a08e7a",
+                    "on-secondary-fixed-variant": "#474646",
+                    "secondary-fixed-dim": "#c9c6c5",
+                    "surface": "#19120a",
+                    "background": "#19120a",
+                    "inverse-on-surface": "#382f25",
+                    "outline-variant": "#534434",
+                    "secondary-fixed": "#e5e2e1",
+                    "primary-fixed-dim": "#ffb95f",
+                    "on-primary-fixed": "#2a1700",
+                    "surface-container-lowest": "#140d06",
+                    "on-error-container": "#ffdad6",
+                    "on-background": "#f0e0d1",
+                    "surface-dim": "#19120a",
+                    "on-surface": "#f0e0d1",
+                    "surface-container-high": "#31281f",
+                    "on-tertiary-fixed": "#001e2d",
+                    "tertiary": "#8fd5ff",
+                    "inverse-surface": "#f0e0d1",
+                    "on-tertiary": "#00344a",
+                    "error-container": "#93000a",
+                    "primary-fixed": "#ffddb8",
+                    "on-primary-fixed-variant": "#653e00",
+                    "tertiary-container": "#1abdff",
+                    "on-tertiary-container": "#004966",
+                    "surface-variant": "#3c3329",
+                    "surface-bright": "#41382e",
+                    "primary": "#ffc174",
+                    "primary-container": "#f59e0b",
+                    "surface-container-low": "#221a12"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "24px",
+                    "section-gap": "128px",
+                    "margin-desktop": "64px",
+                    "unit": "8px",
+                    "gutter": "32px",
+                    "container-max": "1200px"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "h1": ["Newsreader"],
+                    "h2": ["Newsreader"],
+                    "body-md": ["Inter"],
+                    "h3": ["Newsreader"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                    "h1": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+                    "h2": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "h3": ["24px", {"lineHeight": "1.3", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #0A0A0A; color: #f0e0d1; }
+        .no-border { border: none !important; }
+        .tonal-shift { background-color: rgba(10, 10, 10, 0.9); }
+        .flat { box-shadow: none !important; }
+    </style>
+</head>
+<body class="font-body-md text-on-background selection:bg-primary-container selection:text-on-primary">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-neutral-950/90 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-8 py-6 flex justify-between items-center">
+<div class="text-2xl font-bold tracking-tight text-amber-500 font-h1">ChainRight</div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-amber-500 font-semibold transition-colors font-label-md" href="#">Solutions</a>
+<a class="text-neutral-400 font-medium hover:text-neutral-100 transition-colors font-label-md" href="#">Platform</a>
+<a class="text-neutral-400 font-medium hover:text-neutral-100 transition-colors font-label-md" href="#">Provenance</a>
+<a class="text-neutral-400 font-medium hover:text-neutral-100 transition-colors font-label-md" href="#">About</a>
+</div>
+<button class="bg-primary-container text-on-primary px-6 py-2 font-label-caps rounded-sm scale-95 active:scale-90 transition-transform">
+                Connect Wallet
+            </button>
+</div>
+</nav>
+<main>
+<!-- Hero Section -->
+<section class="min-h-screen flex flex-col items-center justify-center pt-32 px-margin-mobile md:px-margin-desktop text-center">
+<span class="text-amber-500 font-label-caps mb-8 tracking-[0.3em]">PROVENANCE FOR AI ART</span>
+<h1 class="font-h1 text-[64px] md:text-[80px] text-white leading-none max-w-4xl mb-8 italic">
+                You created it. <br/>Now prove it.
+            </h1>
+<p class="font-body-lg text-secondary max-w-2xl mb-12 opacity-80">
+                ChainRight gives every AI-generated image a permanent, verifiable birth certificate. Secure your creative legacy using next-generation cryptographic storage.
+            </p>
+<div class="flex flex-col md:flex-row gap-6 mb-16">
+<button class="bg-primary-container text-on-primary px-10 py-4 font-label-caps rounded-sm hover:brightness-110 transition-all">
+                    Create Artwork
+                </button>
+<button class="border border-amber-500 text-amber-500 px-10 py-4 font-label-caps rounded-sm hover:bg-amber-500/10 transition-all">
+                    Verify Authenticity
+                </button>
+</div>
+<div class="flex items-center gap-3 opacity-60">
+<span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+<span class="font-label-caps text-[10px]">Powered by 0G Network</span>
+</div>
+</section>
+<!-- Features: Three Pillars -->
+<section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-section-gap">
+<div class="mb-16">
+<span class="text-amber-500 font-label-caps block mb-4">THE PLATFORM</span>
+<h2 class="font-h2 text-h2 text-white">Three Pillars of Trust</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Card 1 -->
+<div class="bg-[#141414] p-12 flex flex-col gap-6 hover:bg-[#1E1E1E] transition-colors duration-500">
+<span class="font-h1 text-4xl text-amber-500 italic">1</span>
+<h3 class="font-h3 text-h3 text-white">On-Chain Registry</h3>
+<p class="font-body-md text-secondary/70">Immutable records that anchor your creation timestamps to the decentralized ledger forever.</p>
+</div>
+<!-- Card 2 -->
+<div class="bg-[#141414] p-12 flex flex-col gap-6 hover:bg-[#1E1E1E] transition-colors duration-500">
+<span class="font-h1 text-4xl text-amber-500 italic">2</span>
+<h3 class="font-h3 text-h3 text-white">Merkle Proof</h3>
+<p class="font-body-md text-secondary/70">Cryptographic hashes ensuring the integrity of your visual assets down to the individual pixel.</p>
+</div>
+<!-- Card 3 -->
+<div class="bg-[#141414] p-12 flex flex-col gap-6 hover:bg-[#1E1E1E] transition-colors duration-500">
+<span class="font-h1 text-4xl text-amber-500 italic">3</span>
+<h3 class="font-h3 text-h3 text-white">TEE-Verified</h3>
+<p class="font-body-md text-secondary/70">Trusted Execution Environments guarantee the prompt-to-image pipeline was never tampered with.</p>
+</div>
+</div>
+</section>
+<!-- The Process: Timeline -->
+<section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-section-gap overflow-hidden">
+<div class="flex flex-col md:flex-row gap-16">
+<div class="md:w-1/3">
+<span class="text-amber-500 font-label-caps block mb-4">THE PROCESS</span>
+<h2 class="font-h2 text-h2 text-white sticky top-32">From Prompt to Proof</h2>
+</div>
+<div class="md:w-2/3 flex flex-col gap-24 relative">
+<div class="absolute left-0 top-0 w-px h-full bg-neutral-800 ml-4 hidden md:block"></div>
+<div class="relative pl-12 flex flex-col gap-4">
+<span class="absolute left-0 top-0 w-8 h-8 bg-amber-500 rounded-full border-4 border-[#0A0A0A] hidden md:block"></span>
+<h4 class="font-h3 text-white">Generate AI Art</h4>
+<p class="font-body-md text-secondary/60 max-w-lg">Input your vision into our secure TEE-enabled generator. Your prompts and outputs remain private until you choose to reveal them.</p>
+<div class="mt-4 rounded-xl overflow-hidden aspect-video bg-neutral-900">
+<img class="w-full h-full object-cover opacity-60" data-alt="A macro close-up of flowing iridescent liquid metal in deep amber and charcoal tones. The lighting is dramatic and moody, reflecting a high-end luxury aesthetic with soft gradients and sharp, crystalline edges. This digital abstract art represents the fluid nature of AI-generated creativity, captured in a pristine, gallery-ready minimalist style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkL1NKEoYO_7ujExiowp9vOefo0jikEBGi4_HgO9dbeQZZhJWv5Ia6TJjSmlukYIcYiZud3GN4PybiDu0HfYZeMBMXH4h4MYk32PWCxx2rehDDyer-4VU5TvbfaZVXaaY2W6iWepaU7TNDBx--IH1bb6XdtH3hx1eOfGGS6ixB9TL-z2qoLNDSQrmKhY4QxFPdBOTkb2L3tIsR12owFCPbr6JGtlK1d1CBCcibScLA0arrZFWR8KjwUfsBwSC_zLFOIEwuFUG1fQ"/>
+</div>
+</div>
+<div class="relative pl-12 flex flex-col gap-4">
+<span class="absolute left-0 top-0 w-8 h-8 bg-amber-500/40 rounded-full border-4 border-[#0A0A0A] hidden md:block"></span>
+<h4 class="font-h3 text-white">Store on 0G Storage</h4>
+<p class="font-body-md text-secondary/60 max-w-lg">The massive image data is fragmented and stored across 0G's high-speed decentralized storage network, ensuring 100% availability.</p>
+</div>
+<div class="relative pl-12 flex flex-col gap-4">
+<span class="absolute left-0 top-0 w-8 h-8 bg-amber-500/40 rounded-full border-4 border-[#0A0A0A] hidden md:block"></span>
+<h4 class="font-h3 text-white">Mint NFT on 0G Chain</h4>
+<p class="font-body-md text-secondary/60 max-w-lg">A cryptographic certificate is minted as a gas-efficient soulbound token, creating the undeniable link between you and your work.</p>
+</div>
+<div class="relative pl-12 flex flex-col gap-4">
+<span class="absolute left-0 top-0 w-8 h-8 bg-amber-500/40 rounded-full border-4 border-[#0A0A0A] hidden md:block"></span>
+<h4 class="font-h3 text-white">Verify Anytime</h4>
+<p class="font-body-md text-secondary/60 max-w-lg">Anyone can verify the authenticity using the ChainRight explorer. If a single pixel is modified, the proof fails instantly.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Wow Moment -->
+<section class="bg-[#1E1E1E] py-section-gap">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop text-center">
+<span class="text-amber-500 font-label-caps block mb-6">FOR THE SKEPTICS</span>
+<h2 class="font-h2 text-[48px] md:text-[56px] text-white max-w-3xl mx-auto mb-12 italic">
+                    Change One Pixel. <br/>Watch the Proof Collapse.
+                </h2>
+<a class="inline-flex items-center gap-4 text-amber-500 font-label-caps text-lg group" href="#">
+                    Experience the Wow Moment
+                    <span class="material-symbols-outlined group-hover:translate-x-2 transition-transform">arrow_forward</span>
+</a>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-neutral-950 w-full py-12 tonal-shift-bg border-t border-white/5">
+<div class="max-w-7xl mx-auto px-8 flex flex-col items-center gap-8">
+<div class="text-amber-500 font-bold font-label-caps">ChainRight</div>
+<div class="flex flex-wrap justify-center gap-12">
+<a class="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-neutral-300 transition-colors" href="#">Privacy Policy</a>
+<a class="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-neutral-300 transition-colors" href="#">Terms of Service</a>
+<a class="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-neutral-300 transition-colors" href="#">Security</a>
+<a class="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-neutral-300 transition-colors" href="#">Contact</a>
+</div>
+<div class="text-[10px] text-neutral-600 tracking-[0.2em] font-label-caps mt-8 opacity-80 hover:opacity-100 transition-opacity">
+                ChainRight · Built on 0G Chain · Hackathon Demo 2026
+            </div>
+<p class="text-neutral-700 font-sans text-xs uppercase tracking-widest">
+                © 2024 ChainRight. All rights reserved.
+            </p>
+</div>
+</footer>
+</body></html>

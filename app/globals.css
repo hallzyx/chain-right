@@ -8,40 +8,80 @@
 @source "../components/**/*.{js,ts,jsx,tsx,mdx}";
 
 @theme {
-  --color-brand-bg: #070B1A;
-  --color-brand-surface: #111A38;
-  --color-brand-purple: #7C3AED;
-  --color-brand-purple-hover: #6D28D9;
-  --color-brand-indigo: #4F46E5;
+  /* ─── Black & Amber Design System (from Stitch chainright v2) ─── */
 
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
-  --color-slate-950: #020617;
+  /* Surfaces */
+  --color-surface: #0a0a0a;
+  --color-surface-dim: #0a0a0a;
+  --color-surface-bright: #41382e;
+  --color-surface-container-lowest: #140d06;
+  --color-surface-container-low: #221a12;
+  --color-surface-container: #261e15;
+  --color-surface-container-high: #31281f;
+  --color-surface-container-highest: #3c3329;
+  --color-surface-variant: #3c3329;
+  --color-surface-tint: #ffb95f;
+  --color-background: #19120a;
 
-  --color-cyan-400: #22d3ee;
-  --color-cyan-500: #06b6d4;
+  /* Amber / Primary */
+  --color-primary: #ffc174;
+  --color-primary-container: #f59e0b;
+  --color-primary-fixed: #ffddb8;
+  --color-primary-fixed-dim: #ffb95f;
+  --color-inverse-primary: #855300;
+  --color-on-primary: #472a00;
+  --color-on-primary-container: #613b00;
+  --color-on-primary-fixed: #2a1700;
+  --color-on-primary-fixed-variant: #653e00;
 
-  --color-blue-500: #3b82f6;
-  --color-blue-600: #2563eb;
+  /* Secondary (Greys) */
+  --color-secondary: #c9c6c5;
+  --color-secondary-container: #4a4949;
+  --color-secondary-fixed: #e5e2e1;
+  --color-secondary-fixed-dim: #c9c6c5;
+  --color-on-secondary: #313030;
+  --color-on-secondary-container: #bab8b7;
+  --color-on-secondary-fixed: #1c1b1b;
+  --color-on-secondary-fixed-variant: #474646;
 
-  --color-green-400: #4ade80;
-  --color-green-500: #22c55e;
+  /* Tertiary (Blue accents for tech/verification) */
+  --color-tertiary: #8fd5ff;
+  --color-tertiary-container: #1abdff;
+  --color-tertiary-fixed: #c5e7ff;
+  --color-tertiary-fixed-dim: #7fd0ff;
+  --color-on-tertiary: #00344a;
+  --color-on-tertiary-container: #004966;
+  --color-on-tertiary-fixed: #001e2d;
+  --color-on-tertiary-fixed-variant: #004c6a;
 
-  --color-red-400: #f87171;
-  --color-red-500: #ef4444;
+  /* Text / On-surface */
+  --color-on-surface: #f0e0d1;
+  --color-on-surface-variant: #d8c3ad;
+  --color-on-background: #f0e0d1;
+  --color-inverse-surface: #f0e0d1;
+  --color-inverse-on-surface: #382f25;
 
-  --color-purple-500: #a855f7;
-  --color-pink-500: #ec4899;
+  /* Outlines */
+  --color-outline: #a08e7a;
+  --color-outline-variant: #534434;
 
+  /* Error */
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error: #690005;
+  --color-on-error-container: #ffdad6;
+
+  /* Typography */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Newsreader', ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Spacing tokens */
+  --spacing-section-gap: 128px;
+  --spacing-container-max: 1200px;
+  --spacing-gutter: 32px;
+  --spacing-margin-desktop: 64px;
+  --spacing-margin-mobile: 24px;
 }
 
 html {
@@ -50,6 +90,14 @@ html {
 
 body {
   font-family: var(--font-sans);
+  background-color: #0a0a0a;
+  color: #f0e0d1;
+}
+
+/* Selection styling */
+::selection {
+  background-color: #f59e0b;
+  color: #2a1700;
 }
 
 /* Scrollbar styling */
@@ -59,14 +107,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-slate-900);
+  background: #0a0a0a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-slate-700);
-  border-radius: 4px;
+  background: #31281f;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-slate-600);
+  background: #41382e;
 }

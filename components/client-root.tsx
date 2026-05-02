@@ -23,46 +23,88 @@ const SessionSyncNoSSR = dynamic(
 );
 
 /**
- * Root cliente con providers y wallet-gate.
+ * Root cliente con providers y wallet-gate — Black & Amber Edition.
  */
 export function ClientRoot({ children }: { children: React.ReactNode }) {
   return (
     <AppProvidersNoSSR>
       <SessionSyncNoSSR />
 
-      <nav className="border-b border-indigo-500/20 bg-[#070B1A]/90 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 font-bold text-lg">
-            <span className="text-2xl">🔗</span>
-            <span className="bg-gradient-to-r from-indigo-300 via-violet-400 to-indigo-500 bg-clip-text text-transparent">
-              ChainRight
-            </span>
+      {/* ─── Top Navigation ─── */}
+      <nav className="fixed top-0 w-full z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-8 py-6 flex justify-between items-center">
+          <a
+            href="/"
+            className="text-2xl font-bold tracking-tight text-[#f59e0b] font-[family-name:var(--font-newsreader)]"
+          >
+            ChainRight
           </a>
-          <div className="flex items-center gap-6 text-sm">
-            <a href="/create" className="text-slate-400 hover:text-violet-300 transition-colors">Create</a>
-            <a href="/verify" className="text-slate-400 hover:text-violet-300 transition-colors">Verify</a>
-            <a href="/my-works" className="text-slate-400 hover:text-violet-300 transition-colors">My Works</a>
+          <div className="hidden md:flex items-center gap-10">
             <a
-              href="https://github.com/0gfoundation"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg border border-indigo-500/30 text-slate-300 hover:border-violet-400 hover:text-violet-200 transition-all text-xs"
+              href="/create"
+              className="text-neutral-400 font-medium hover:text-neutral-100 transition-colors"
             >
-              Powered by 0G
+              Create
             </a>
+            <a
+              href="/verify"
+              className="text-neutral-400 font-medium hover:text-neutral-100 transition-colors"
+            >
+              Verify
+            </a>
+            <a
+              href="/my-works"
+              className="text-neutral-400 font-medium hover:text-neutral-100 transition-colors"
+            >
+              My Works
+            </a>
+          </div>
+          <div className="flex items-center gap-4">
             <WalletBadgeNoSSR />
           </div>
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      {/* ─── Main Content ─── */}
+      <div className="pt-20">
         <WalletGateNoSSR>{children}</WalletGateNoSSR>
-      </main>
+      </div>
 
-      <footer className="border-t border-indigo-500/20 mt-20">
-        <div className="max-w-6xl mx-auto px-4 py-8 text-center text-slate-500 text-sm">
-          <p>ChainRight — Verifiable provenance for AI-generated images</p>
-          <p className="mt-2 text-xs">Built on 0G Chain | Hackathon Demo</p>
+      {/* ─── Footer ─── */}
+      <footer className="w-full py-12 bg-[#0a0a0a] border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="text-[#f59e0b] font-bold text-xl font-[family-name:var(--font-newsreader)]">
+            ChainRight
+          </div>
+          <div className="flex flex-wrap justify-center gap-8">
+            <a
+              href="#"
+              className="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-[#f59e0b] transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <a
+              href="#"
+              className="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-[#f59e0b] transition-colors"
+            >
+              Terms of Service
+            </a>
+            <a
+              href="#"
+              className="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-[#f59e0b] transition-colors"
+            >
+              Security
+            </a>
+            <a
+              href="#"
+              className="font-sans text-xs uppercase tracking-widest text-neutral-500 hover:text-[#f59e0b] transition-colors"
+            >
+              Contact
+            </a>
+          </div>
+          <div className="font-sans text-xs uppercase tracking-widest text-neutral-500">
+            &copy; 2024 ChainRight. All rights reserved.
+          </div>
         </div>
       </footer>
     </AppProvidersNoSSR>
