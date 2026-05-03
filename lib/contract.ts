@@ -178,6 +178,32 @@ export async function verifyProvenance(merkleRoot: string): Promise<Verification
 }
 
 /**
+ * Busca el tokenId y transactionHash del mint a partir del Merkle Root.
+ * Consulta los eventos ProvenanceMinted del contrato.
+ */
+export async function getTokenIdAndTxByMerkleRoot(
+  merkleRoot: string
+): Promise<{ tokenId: bigint; txHash: string } | null> {
+  try {
+    const contract = getReadContract();
+    const filter = contract.filters.ProvenanceMinted(null, merkleRoot);
+    const events = await contract.queryFilter(filter, 0, "latest");
+
+    if (events.length === 0) return null;
+
+    // Tomamos el evento más reciente (debería haber solo uno por merkleRoot)
+    const event = events[events.length - 1];
+    const tokenId = (event as ethers.EventLog).args[0] as bigint;
+    const txHash = (event as ethers.EventLog).transactionHash;
+
+    return { tokenId, txHash };
+  } catch (error) {
+    console.error("Error querying ProvenanceMinted events:", error);
+    return null;
+  }
+}
+
+/**
  * Obtiene la cantidad de obras de un creador.
  */
 export async function getCreatorWorksCount(creator: string): Promise<number> {
