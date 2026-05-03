@@ -55,3 +55,4 @@ typechain-types/
 agent-state.json
 agent-log.json
 db.json
+.0g-kv-root

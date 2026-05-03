@@ -18,8 +18,21 @@ import { agentThink, agentRespond } from "./utils/nlp";
 import type { ToolCall } from "./utils/nlp";
 import { appendLog } from "./memory/log";
 import { getUserStats } from "./memory/kv";
+import { initMemory, syncTo0G } from "./memory/0g-kv";
 import { formatHelp, formatStats, formatError } from "./utils/format";
 import "dotenv/config";
+
+// Throttle 0G sync: no más de 1 sync cada N verificaciones
+let pendingSyncs = 0;
+const SYNC_INTERVAL = 5; // sync a 0G Storage cada 5 verificaciones
+
+async function maybeSyncTo0G() {
+  pendingSyncs++;
+  if (pendingSyncs >= SYNC_INTERVAL) {
+    pendingSyncs = 0;
+    await syncTo0G().catch((err) => console.error("0G sync error:", err));
+  }
+}
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -122,6 +135,9 @@ This artwork has an immutable record on 0G Chain.
 [URL]
 
 No markdown. Just emojis and text. Include links as plain URLs.`;
+
+      // Trigger 0G Storage sync (throttled)
+      maybeSyncTo0G().catch(() => {});
 
       return { content: details, pdfBuffer: data.pdfBuffer };
     }
@@ -266,6 +282,17 @@ bot.catch((err) => console.error("Bot error:", err));
 async function main() {
   console.log("🤖 ChainRight Autonomous Agent starting...");
   console.log("   NLP:", process.env.DEEPSEEK_API_KEY ? "DeepSeek Function Calling" : "Keyword fallback");
+
+  // Init 0G Storage memory
+  await initMemory().catch((err) => console.warn("   ⚠️  0G Storage memory init failed:", err.message));
+
+  // Final sync on shutdown
+  process.on("SIGINT", async () => {
+    console.log("\n💾 Syncing to 0G Storage before exit...");
+    await syncTo0G().catch(() => {});
+    process.exit(0);
+  });
+
   console.log("   Press Ctrl+C to stop");
   await bot.start();
 }

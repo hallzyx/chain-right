@@ -137,6 +137,63 @@ A personal gallery page accessible from the app shell that shows the user's crea
 | 11 | Complete transaction history | 🔴 cut |
 | 12 | NFT transfers between users | 🔴 cut |
 | 13 | Royalties / secondary sales | 🔴 cut |
+| 14 | **Telegram Verification Agent** (autonomous AI agent) | ✅ yes |
+| 15 | Agent persistent memory via 0G Storage KV/Log | ✅ yes |
+| 16 | Natural language verification via DeepSeek Function Calling | ✅ yes |
+
+## Telegram Verification Agent
+
+ChainRight includes an autonomous AI agent accessible via Telegram. The agent uses **DeepSeek Function Calling** to autonomously decide which actions to take based on the user's natural language message.
+
+### Agent Capabilities
+
+- **Verify images**: Send any image (photo or document) and the agent computes the Merkle Root, queries 0G Chain, and responds with the full provenance data — Creator, AI Model, Prompt, ZK Res Key, Sequence, Timestamp, Merkle Root, and links to ChainScan, NFT viewer, and StorageScan.
+- **PDF Certificate**: The agent automatically generates and sends a downloadable Certificate of Authenticity PDF for verified images.
+- **Natural language**: The agent understands intent via DeepSeek — say "verify this", "check authenticity", "is this real?", "show my stats", "what can you do?", etc.
+- **Persistent memory**: Agent state (per-user stats, verification history, global counters) is synced to **0G Storage KV/Log** for decentralized persistence across restarts.
+
+### Agent Flow
+
+```
+User sends image + "verify this" on Telegram
+        │
+        ▼
+DeepSeek analyzes intent → calls verify_image tool
+        │
+        ▼
+Agent downloads image, computes Merkle Root
+        │
+        ▼
+Queries 0G Chain contract + events (tokenId, txHash)
+        │
+        ▼
+DeepSeek generates final response with ALL provenance details
+        │
+        ▼
+Agent sends response + PDF certificate to user
+```
+
+### Agent Memory Architecture
+
+```
+agent-state.json ←→ 0G Storage KV (uploadBuffer/downloadFile)
+agent-log.json    ←→ 0G Storage Log (append-only, periodic sync)
+.0g-kv-root       ←  Merkle Roots for retrieval on restart
+```
+
+- On startup: attempts to load previous state from 0G Storage
+- On verification: saves locally, syncs to 0G every 5 operations
+- On shutdown (SIGINT): performs final sync to 0G Storage
+
+### NLP Architecture
+
+The agent uses **DeepSeek chat API** with **Function Calling** to decide which tool to invoke:
+- `verify_image` — verify on-chain provenance
+- `show_help` — display help information
+- `show_stats` — show user verification statistics
+- `chat_reply` — general conversation
+
+The LLM receives the user's message + image context + available tools, and autonomously selects the right action. After tool execution, the result is sent back to DeepSeek to generate a natural language response.
 
 ## The Pitch Line
 
