@@ -5,8 +5,8 @@
 - Language: TypeScript
 - Framework: Next.js 15 (App Router) + React 19
 - Smart Contracts: Solidity + Hardhat
-- Styling: Tailwind CSS v4
-- Storage: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8)
+- Styling: Tailwind CSS v4 (Black & Amber design system from Stitch)
+- Storage: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8) — upload, download, Merkle tree, Indexer, KV/Log
 - Compute: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
 - Fallback Image Generation: OpenAI Images API (`openai`)
   - Demo profile: `gpt-image-1-mini`, `size: auto` (valid), `quality: low`, `jpeg` + compression
@@ -15,6 +15,9 @@
 - Wallet: ethers v6.13.1 + MetaMask (RainbowKit for advanced demo — DEMO: use ethers directly for simplicity)
 - PDF Generation: `jspdf` (certificate export for verified works)
 - Deploy: Vercel (frontend) + 0G Testnet (contracts)
+- **Agent NLP**: DeepSeek chat API (Function Calling for autonomous tool selection)
+- **Agent Framework**: grammY (Telegram Bot framework for Node.js)
+- **Agent Runtime**: tsx (TypeScript execution without build step)
 
 ## Blockchain
 
@@ -82,6 +85,24 @@ chainright/
 │   ├── certificate-card.tsx  # Certificate display card
 │   ├── my-works.tsx       # My Works gallery
 │   └── wow-moment.tsx     # Pixel-tampering verification demo
+├── agent/                  # Autonomous Telegram Agent
+│   ├── bot.ts             # Entrypoint — Function Calling loop
+│   ├── context.ts         # Bot context type
+│   ├── handlers/
+│   │   ├── verify.ts      # Image verification (Merkle + Chain)
+│   │   ├── start.ts       # /start command
+│   │   ├── help.ts        # /help command
+│   │   └── stats.ts       # /stats command
+│   ├── memory/
+│   │   ├── kv.ts          # Local KV state (JSON)
+│   │   ├── log.ts         # Local log history (JSON)
+│   │   └── 0g-kv.ts       # 0G Storage KV/Log sync wrapper
+│   └── utils/
+│       ├── nlp.ts         # DeepSeek Function Calling integration
+│       ├── telegram.ts    # Telegram image download
+│       ├── format.ts      # Message formatting
+│       ├── pdf.ts         # Certificate PDF generation
+│       └── tools.ts       # Agent tool definitions
 ├── contracts/             # Solidity contracts
 │   └── ChainRightERC721.sol
 ├── lib/                   # Utilities and SDK wrappers
@@ -118,10 +139,13 @@ chainright/
 | `NEXT_PUBLIC_CONTRACT_ADDRESS` | `0xE76B9fcbf59B4eBE7CE6c41939BA68D65c65Bb44` |
 | `PROVIDER_ADDRESS` | `TBD` — text-to-image provider (discovered via provider-discovery) |
 | `OPENAI_API_KEY` | API key for image fallback when no 0G providers available |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather (for agent) |
+| `DEEPSEEK_API_KEY` | DeepSeek API key for agent NLP / Function Calling |
 
 ## Commands
 
 - Dev frontend: `npm run dev`
+- Run agent: `npm run agent`
 - Dev chain (Hardhat Network): `npx hardhat node`
 - Compile contracts: `npm run compile`
 - Deploy to testnet: `npx hardhat run scripts/deploy.ts --network 0g-testnet`

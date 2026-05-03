@@ -32,19 +32,21 @@ El jurado verá:
 3. Usuario guarda la imagen en 0G Storage → obtiene Merkle Root
 4. Usuario conecta MetaMask y mintea un NFT en 0G Chain
 5. Wow moment: Usuario modifica UN PÍXEL, intenta verificar → falla
-6. Conclusión: ChainRight le da procedencia irrefutable a obras de IA
+6. **Agente de Telegram**: Usuario envía imagen al bot → el agente autónomamente verifica con DeepSeek + 0G Chain
+7. Conclusión: ChainRight le da procedencia irrefutable a obras de IA + agente autónomo con memoria persistente
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS v4
+- **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS v4 (Black & Amber design)
 - **Blockchain**: 0G Chain (EVM-compatible, evmVersion: "cancun")
-- **Storage**: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8)
+- **Storage**: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8) — KV/Log for agent persistent memory
 - **Compute**: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
 - **Fallback Compute**: OpenAI Images API (solo tras consentimiento explícito)
 - **Wallet UX**: RainbowKit + Wagmi + Viem (wallet gate obligatorio)
 - **Contracts**: Solidity ^0.8.24 + Hardhat
 - **Wallet**: ethers v6.13.1 + MetaMask
 - **Deploy**: Vercel (frontend) + 0G Testnet (contracts)
+- **Agent**: grammY + DeepSeek Function Calling + tsx
 
 ## 0G Network for Demo
 
@@ -57,16 +59,47 @@ El jurado verá:
 
 ## Current Focus
 
-1. **Scaffoldear el proyecto**: Next.js + 0G SDKs + estructura
-2. **Escribir y deployar el contrato**: ChainRightERC721
-3. **Implementar flujo 1**: Generar + mintear
-4. **Implementar flujo 2**: Verificar autenticidad
-5. **Polish demo**: wallet-first UX + resultados tangibles
+1. **Web App**: Generate → Store → Mint → Verify con Wow Moment
+2. **Design System**: Black & Amber Edition (extraído de Stitch)
+3. **Autonomous Agent**: Telegram bot con DeepSeek Function Calling
+4. **Agent Memory**: 0G Storage KV/Log para persistencia descentralizada
 
 ## MVP Persistence
 
-- Persistencia local demo con `db.json` (users + works).
+- Persistencia local demo con `db.json` (users + works) para la web.
+- Agente: `agent-state.json` y `agent-log.json` con sync periódico a 0G Storage.
+- Merkle Roots persistidos en `.0g-kv-root` para recuperación cross-restart.
 - No es producción. Es válido para hackathon MVP.
+
+## Agent Architecture
+
+### Tool Definitions (Function Calling)
+
+| Tool | Trigger | Action |
+|---|---|---|
+| `verify_image` | User sends image + "verify", "check", "authenticate" | Computes Merkle Root, queries 0G Chain, returns provenance + PDF |
+| `show_help` | User asks "what can you do", "help" | Returns help message |
+| `show_stats` | User asks "stats", "history" | Returns verification statistics |
+| `chat_reply` | Small talk, greetings | Conversational response |
+
+### Agent Memory (0G Storage KV/Log)
+
+```
+agent-state.json → uploadBuffer() → 0G Storage (Merkle Root stored in .0g-kv-root)
+agent-log.json   → uploadBuffer() → 0G Storage
+
+On restart: downloadFile(merkleRoot) → restore state
+On shutdown (SIGINT): final syncTo0G()
+```
+
+### Agent Flow
+
+```
+User message + image → agentThink() [DeepSeek] → tool_calls
+→ executeTool() → verifyImageData() → Merkle + Chain
+→ agentRespond() [DeepSeek] → natural language response + PDF
+→ maybeSyncTo0G() [every 5 verifications]
+```
 
 ## P2 Backlog
 
@@ -91,6 +124,23 @@ El jurado verá:
 | `chain/interact-contract` | 0G Chain | Mint, read, verify on-chain |
 | `cross-layer/storage-plus-chain` | Cross-layer | Register merkle root on-chain |
 | `cross-layer/compute-plus-storage` | Cross-layer | Generate + store pipeline |
+| `agent/verify` | Agent | Image verification via Merkle + Chain |
+| `agent/nlp` | Agent | DeepSeek Function Calling |
+| `agent/memory/kv` | Agent | Persistent state |
+| `agent/memory/0g-kv` | Agent | 0G Storage KV/Log sync |
+
+## Agent Skills
+
+| Skill | Description |
+|---|---|
+| `agent/bot.ts` | Entrypoint — Function Calling loop |
+| `agent/handlers/verify.ts` | Image verification (Merkle + Chain + PDF) |
+| `agent/utils/nlp.ts` | DeepSeek Function Calling integration |
+| `agent/utils/pdf.ts` | Certificate PDF generation in Node.js |
+| `agent/utils/tools.ts` | Agent tool definitions (verify_image, show_help, show_stats, chat_reply) |
+| `agent/memory/0g-kv.ts` | 0G Storage KV/Log wrapper (uploadBuffer/downloadFile) |
+| `agent/memory/kv.ts` | Local KV state (JSON file) |
+| `agent/memory/log.ts` | Local log history (JSON file) |
 
 ## CRITICAL 0G RULES — THESE BREAK THINGS IF IGNORED
 

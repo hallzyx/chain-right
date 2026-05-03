@@ -50,3 +50,9 @@ typechain-types/
 .vscode/
 *.swp
 *.swo
+
+# agent state (local user data)
+agent-state.json
+agent-log.json
+db.json
+.0g-kv-root
