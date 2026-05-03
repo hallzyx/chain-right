@@ -1,39 +1,92 @@
 /**
  * NLP module — Natural Language Understanding via DeepSeek API.
- * Clasifica la intención del usuario para el agente de ChainRight.
  *
- * Usa deepseek-chat (modelo económico, suficiente para clasificación).
+ * El agente envía el mensaje del usuario + tools disponibles a DeepSeek.
+ * DeepSeek decide autónomamente qué tool llamar (Function Calling).
+ * El código ejecuta la tool y devuelve el resultado a DeepSeek.
+ * DeepSeek genera la respuesta final en lenguaje natural.
  */
 import "dotenv/config";
+import { AGENT_TOOLS } from "./tools";
+import type { ToolDefinition } from "./tools";
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
 
-const SYSTEM_PROMPT = `You are the ChainRight Verification Agent intent classifier. Your ONLY job is to classify user messages into intents.
+const SYSTEM_PROMPT = `You are the ChainRight Verification Agent. You verify the cryptographic provenance of AI-generated images on the 0G decentralized network.
 
-Classify into EXACTLY one of these intents:
-- "verify" — user wants to verify, check, validate, or confirm an image's authenticity or provenance on the blockchain
-- "help" — user asks what you can do, how to use you, or about your capabilities
-- "stats" — user asks about their verification statistics, history, or how many times they've used you
-- "unknown" — anything that doesn't fit the above (greetings, small talk, unrelated questions)
+FORMAT RULES:
+- Do NOT use Markdown (no bold, no italic, no code blocks). Use plain text with emojis.
+- Structure your response clearly with emoji prefixes and line breaks.
+- Keep responses concise and direct.
 
-Reply with ONLY the lowercase intent word. No punctuation, no explanation.`;
+Your capabilities:
+- **verify_image**: Use when the user sends an image and wants to check its on-chain provenance.
+- **show_help**: Use when the user asks what you can do or how to use you.
+- **show_stats**: Use when the user asks about their verification statistics or history.
+- **chat_reply**: Use for small talk, greetings, or general questions.
 
-export type Intent = "verify" | "help" | "stats" | "unknown";
+CRITICAL RULES:
+1. If the user mentions verifying/checking/validating AND there's an image attached → call verify_image with has_image=true.
+2. If the user mentions verifying/checking/validating but NO image → call verify_image with has_image=false and explain they need to send an image.
+3. Always be warm, direct, and helpful. Premium, minimalist brand voice.`;
+
+interface DeepSeekMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  tool_call_id?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
+}
 
 interface DeepSeekResponse {
-  choices: { message: { content: string } }[];
+  choices: {
+    message: {
+      content: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: "function";
+        function: { name: string; arguments: string };
+      }>;
+    };
+    finish_reason: string;
+  }[];
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
 }
 
 /**
- * Detecta la intención de un mensaje usando DeepSeek.
- * Si la API no está disponible, usa keyword matching como fallback.
+ * Envía el mensaje del usuario a DeepSeek con las tools disponibles.
+ * Devuelve la respuesta del LLM y/o las tool calls que decidió hacer.
  */
-export async function detectIntent(message: string): Promise<Intent> {
-  // Si no hay API key, usar keyword fallback
+export async function agentThink(
+  userMessage: string,
+  hasImage: boolean
+): Promise<{
+  textResponse: string | null;
+  toolCalls: ToolCall[];
+}> {
   if (!DEEPSEEK_API_KEY) {
-    return keywordFallback(message);
+    // Sin API key: fallback determinístico
+    return fallbackAgent(userMessage, hasImage);
   }
+
+  const messages: DeepSeekMessage[] = [
+    { role: "system", content: SYSTEM_PROMPT },
+    {
+      role: "user",
+      content: hasImage
+        ? `[User sent an image] ${userMessage || "(no caption)"}`
+        : userMessage || "(empty message)",
+    },
+  ];
 
   try {
     const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
@@ -44,112 +97,200 @@ export async function detectIntent(message: string): Promise<Intent> {
       },
       body: JSON.stringify({
         model: "deepseek-chat",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: message },
-        ],
-        max_tokens: 10,
-        temperature: 0,
+        messages,
+        tools: AGENT_TOOLS,
+        tool_choice: "auto",
+        max_tokens: 200,
+        temperature: 0.3,
       }),
     });
 
     if (!response.ok) {
-      console.error(`DeepSeek API error: ${response.status}`);
-      return keywordFallback(message);
+      console.error(`DeepSeek agent error: ${response.status}`);
+      return fallbackAgent(userMessage, hasImage);
     }
 
     const data: DeepSeekResponse = await response.json();
-    const raw = data.choices?.[0]?.message?.content?.trim().toLowerCase() || "";
+    const choice = data.choices?.[0];
+    if (!choice) return fallbackAgent(userMessage, hasImage);
 
-    // Validar que sea una intención conocida
-    if (["verify", "help", "stats"].includes(raw)) {
-      return raw as Intent;
+    const msg = choice.message;
+
+    // Si hay tool calls → el agente decidió ejecutar herramientas
+    if (msg.tool_calls && msg.tool_calls.length > 0) {
+      const toolCalls: ToolCall[] = msg.tool_calls.map((tc) => ({
+        id: tc.id,
+        name: tc.function.name,
+        arguments: JSON.parse(tc.function.arguments || "{}"),
+      }));
+
+      return {
+        textResponse: null,
+        toolCalls,
+      };
     }
 
-    return "unknown";
+    // Si no hay tool calls, es una respuesta directa de texto
+    return {
+      textResponse: msg.content || "I'm here to verify images! Send me a photo. 🔍",
+      toolCalls: [],
+    };
   } catch (error) {
-    console.error("DeepSeek NLP error:", error);
-    return keywordFallback(message);
+    console.error("DeepSeek agent error:", error);
+    return fallbackAgent(userMessage, hasImage);
   }
 }
 
 /**
- * Fallback basado en keywords cuando DeepSeek no está disponible.
+ * Envía el resultado de una tool de vuelta a DeepSeek
+ * para que genere la respuesta final al usuario.
  */
-function keywordFallback(message: string): Intent {
-  const lower = message.toLowerCase();
+export async function agentRespond(
+  userMessage: string,
+  toolCall: ToolCall,
+  toolResult: string
+): Promise<string> {
+  if (!DEEPSEEK_API_KEY) {
+    return toolResult;
+  }
 
-  // Verificar
+  const messages: DeepSeekMessage[] = [
+    { role: "system", content: SYSTEM_PROMPT },
+    {
+      role: "user",
+      content: `[User sent an image] ${userMessage || "(no caption)"}`,
+    },
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: toolCall.id,
+          type: "function",
+          function: {
+            name: toolCall.name,
+            arguments: JSON.stringify(toolCall.arguments),
+          },
+        },
+      ],
+    },
+    {
+      role: "tool",
+      content: toolResult,
+      tool_call_id: toolCall.id,
+    },
+  ];
+
+  try {
+    const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages,
+        max_tokens: 300,
+        temperature: 0.5,
+      }),
+    });
+
+    if (!response.ok) {
+      return toolResult;
+    }
+
+    const data: DeepSeekResponse = await response.json();
+    return data.choices?.[0]?.message?.content || toolResult;
+  } catch {
+    return toolResult;
+  }
+}
+
+/**
+ * Fallback determinístico cuando DeepSeek no está disponible.
+ * Usa keywords para decidir la acción.
+ */
+function fallbackAgent(
+  userMessage: string,
+  hasImage: boolean
+): {
+  textResponse: string | null;
+  toolCalls: ToolCall[];
+} {
+  const lower = userMessage.toLowerCase();
+
+  // Verify
   const verifyWords = [
     "verify", "check", "validate", "authenticate", "prove",
     "real?", "legit?", "authentic?", "confirm",
     "verifica", "verificar", "valida", "autentica",
   ];
-  if (verifyWords.some((w) => lower.includes(w))) return "verify";
 
-  // Ayuda
   const helpWords = [
     "help", "ayuda", "what can you", "how to", "how do",
     "commands", "comandos", "que haces", "qué haces",
   ];
-  if (helpWords.some((w) => lower.includes(w))) return "help";
 
-  // Stats
   const statsWords = [
     "stats", "statistics", "history", "how many",
     "estadisticas", "cuantas", "cuántas", "historial",
   ];
-  if (statsWords.some((w) => lower.includes(w))) return "stats";
 
-  return "unknown";
-}
-
-/**
- * Genera una respuesta conversacional usando DeepSeek.
- * Solo para mensajes que no son verify/help/stats (ej. small talk, preguntas).
- */
-export async function chatResponse(message: string): Promise<string> {
-  if (!DEEPSEEK_API_KEY) {
-    return "I'm the ChainRight Verification Agent. Send me an image to verify its blockchain provenance, or type /help for commands.";
+  if (hasImage || verifyWords.some((w) => lower.includes(w))) {
+    return {
+      textResponse: null,
+      toolCalls: [
+        {
+          id: "fallback-1",
+          name: "verify_image",
+          arguments: { user_message: userMessage, has_image: hasImage },
+        },
+      ],
+    };
   }
 
-  try {
-    const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+  if (helpWords.some((w) => lower.includes(w))) {
+    return {
+      textResponse: null,
+      toolCalls: [
+        {
+          id: "fallback-2",
+          name: "show_help",
+          arguments: { topic: "general" },
+        },
+      ],
+    };
+  }
+
+  if (statsWords.some((w) => lower.includes(w))) {
+    return {
+      textResponse: null,
+      toolCalls: [{ id: "fallback-3", name: "show_stats", arguments: {} }],
+    };
+  }
+
+  if (hasImage) {
+    return {
+      textResponse: null,
+      toolCalls: [
+        {
+          id: "fallback-4",
+          name: "verify_image",
+          arguments: { user_message: userMessage, has_image: true },
+        },
+      ],
+    };
+  }
+
+  return {
+    textResponse: null,
+    toolCalls: [
+      {
+        id: "fallback-5",
+        name: "chat_reply",
+        arguments: { message: userMessage },
       },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: `You are the ChainRight Verification Agent. You verify provenance of AI-generated images on the 0G blockchain.
-
-You can:
-• Verify images — send me any image and I'll check its on-chain provenance
-• Show stats — ask for your verification history
-• Help — ask what I can do
-
-Keep responses SHORT (1-2 sentences). Be helpful and friendly. Don't make up features. If asked something unrelated to image verification, politely redirect to your capabilities.
-
-You are part of the ChainRight ecosystem: 0G Storage + 0G Compute + 0G Chain.`,
-          },
-          { role: "user", content: message },
-        ],
-        max_tokens: 120,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      return "I'm here to verify images! Send me a photo and I'll check its on-chain provenance.";
-    }
-
-    const data: DeepSeekResponse = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || "Send me an image and I'll verify it! 🔍";
-  } catch {
-    return "Send me an image and I'll verify its provenance on the 0G blockchain. Type /help for more.";
-  }
+    ],
+  };
 }

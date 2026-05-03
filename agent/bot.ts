@@ -1,76 +1,194 @@
 /**
- * ChainRight Verification Agent — Entrypoint.
+ * ChainRight Verification Agent — Autonomous AI Agent.
  *
- * Bot de Telegram con capacidades de lenguaje natural (DeepSeek).
- * Verifica procedencia de imágenes usando 0G Storage + 0G Chain.
+ * Usa DeepSeek Function Calling para decidir autónomamente
+ * qué acciones tomar basándose en el mensaje del usuario.
  *
- * Uso:
- *   1. Creá un bot con @BotFather y obtené el token
- *   2. Seteá TELEGRAM_BOT_TOKEN y DEEPSEEK_API_KEY en .env
- *   3. npm run agent
+ * Flujo:
+ *   Usuario → agentThink() → DeepSeek decide tool → ejecutamos tool
+ *   → DeepSeek genera respuesta final con todos los detalles
  */
-import { Bot } from "grammy";
+import { Bot, InputFile } from "grammy";
 import type { BotContext } from "./context";
-import { handleStart } from "./handlers/start";
+import { verifyImageData, handlePhoto, handleDocument } from "./handlers/verify";
 import { handleHelp } from "./handlers/help";
 import { handleStats } from "./handlers/stats";
-import { handlePhoto, handleDocument } from "./handlers/verify";
-import { detectIntent, chatResponse } from "./utils/nlp";
-import { getUserStats } from "./memory/kv";
+import { handleStart } from "./handlers/start";
+import { agentThink, agentRespond } from "./utils/nlp";
+import type { ToolCall } from "./utils/nlp";
 import { appendLog } from "./memory/log";
-import { formatStats } from "./utils/format";
+import { getUserStats } from "./memory/kv";
+import { formatHelp, formatStats, formatError } from "./utils/format";
 import "dotenv/config";
 
-// ─── Configuración ───
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-
 if (!BOT_TOKEN) {
   console.error("❌ TELEGRAM_BOT_TOKEN not set in .env");
-  console.error("   1. Create a bot with @BotFather on Telegram");
-  console.error("   2. Copy the token");
-  console.error('   3. Add TELEGRAM_BOT_TOKEN="your-token" to .env');
   process.exit(1);
 }
 
 const bot = new Bot<BotContext>(BOT_TOKEN);
 
-// ─── Comandos explícitos ───
 bot.command("start", handleStart);
 bot.command("help", handleHelp);
 bot.command("stats", handleStats);
 
-// ─── Handler de imágenes (foto) con NLP ───
+// ─── Ejecutor de tools (agente autónomo) ───
+async function executeTool(
+  toolCall: ToolCall,
+  ctx: {
+    userId: number;
+    username?: string;
+    chatId: number;
+    photoSizes?: { file_id: string; width: number; height: number }[];
+    document?: { file_id: string; file_name?: string; mime_type?: string };
+    reply: (text: string, opts?: Record<string, unknown>) => Promise<unknown>;
+  }
+): Promise<{ content: string; pdfBuffer?: Buffer }> {
+  const { name, arguments: args } = toolCall;
+
+  switch (name) {
+    case "verify_image": {
+      const hasImage = (args as any).has_image === true;
+
+      if (!hasImage || (!ctx.photoSizes && !ctx.document)) {
+        return {
+          content: "No image was provided with the verification request. Tell the user to send a photo or document file (PNG, JPG, WebP).",
+        };
+      }
+
+      // Ejecutar verificación "headless" → obtener datos
+      let fileId: string;
+      let source: "photo" | "document";
+
+      if (ctx.document) {
+        fileId = ctx.document.file_id;
+        source = "document";
+      } else if (ctx.photoSizes) {
+        const best = ctx.photoSizes[ctx.photoSizes.length - 1];
+        fileId = best.file_id;
+        source = "photo";
+      } else {
+        return { content: "No image found. Ask user to send a photo." };
+      }
+
+      const data = await verifyImageData(bot, ctx.userId, ctx.username, source, fileId);
+
+      if (!data.success || data.error) {
+        return {
+          content: `Verification failed: ${data.error || "Unknown error"}. Tell the user the error message and suggest trying again.`,
+        };
+      }
+
+      // Construir respuesta rica con TODOS los detalles para DeepSeek
+      let details = `Verification result for image:\n`;
+      details += `Merkle Root: ${data.merkleRoot}\n`;
+      details += `Verified: ${data.verified ? "YES" : "NO"}\n`;
+
+      if (data.verified && data.provenance) {
+        const p = data.provenance;
+        details += `Creator: ${p.creator}\n`;
+        details += `AI Model: ${p.model}\n`;
+        details += `Prompt: ${p.prompt}\n`;
+        details += `ZK Resource Key: ${p.zkResKey}\n`;
+        details += `Sequence: ${p.sequenceNumber || "N/A"}\n`;
+        details += `Timestamp: ${new Date(Number(p.timestamp) * 1000).toLocaleString("en-US")}\n`;
+        if (data.chainScanUrl) details += `Mint Tx URL: ${data.chainScanUrl}\n`;
+        if (data.nftUrl) details += `NFT URL: ${data.nftUrl}\n`;
+        if (data.storageScanUrl) details += `StorageScan URL: ${data.storageScanUrl}\n`;
+        if (data.sourceIsPhoto) details += `WARNING: Sent as photo (compressed). For exact verification, send as document.\n`;
+      }
+
+      details += `\nINSTRUCTIONS: Reply to the user with EVERY single detail above. Do NOT use Markdown (** or __ or *). Use plain text with emojis. Always include ALL fields: Creator, AI Model, Prompt, ZK Res Key, Sequence, Timestamp, Merkle Root, and ALL the URLs (Mint Tx on ChainScan, View NFT on ChainScan, View on StorageScan) as plain URLs (not markdown links). Format like this:
+      
+✅ AUTHENTICITY CONFIRMED (or ❌ NO RECORD FOUND)
+This artwork has an immutable record on 0G Chain.
+
+👤 Creator: [value]
+🤖 AI Model: [value]
+📝 Prompt: [value]
+🔑 ZK Res Key: [value]
+#️⃣ Sequence: [value]
+🕐 Timestamp: [value]
+
+🔐 Merkle Root:
+[merkle root]
+
+⛓️ View Mint Tx on ChainScan
+[URL]
+🎨 View NFT on ChainScan  
+[URL]
+☁️ View on StorageScan
+[URL]
+
+No markdown. Just emojis and text. Include links as plain URLs.`;
+
+      return { content: details, pdfBuffer: data.pdfBuffer };
+    }
+
+    case "show_help": {
+      return { content: formatHelp() };
+    }
+
+    case "show_stats": {
+      const stats = await getUserStats(ctx.userId);
+      return { content: formatStats(stats) };
+    }
+
+    case "chat_reply": {
+      const msg = (args as any).message || "";
+      return {
+        content: `User said: "${msg}". Reply in a friendly, short, helpful manner. Remind them you verify images. Don't make up features.`,
+      };
+    }
+
+    default:
+      return { content: "Unknown request. Ask the user to try again." };
+  }
+}
+
+// ─── Handler unificado (foto) ───
 bot.on(":photo", async (ctx) => {
   const userId = ctx.from?.id;
   const username = ctx.from?.username || ctx.from?.first_name;
   if (!userId) return;
 
   const caption = ctx.message.caption || "";
+  const chatId = ctx.chat.id;
 
-  // Si no hay caption, verificar directamente
-  if (!caption.trim()) {
-    await handlePhoto(bot, userId, username, ctx.message.photo, (text, opts) => ctx.reply(text, opts as any), ctx.chat.id);
+  const { toolCalls } = await agentThink(caption, true);
+
+  if (toolCalls.length > 0) {
+    for (const toolCall of toolCalls) {
+      const result = await executeTool(toolCall, {
+        userId, username, chatId,
+        photoSizes: ctx.message.photo,
+        reply: (text, opts) => ctx.reply(text, opts as any),
+      });
+
+      // DeepSeek genera la respuesta final incluyendo TODOS los detalles
+      const finalResponse = await agentRespond(caption, toolCall, result.content);
+      await ctx.reply(finalResponse, { disable_web_page_preview: true });
+
+      // Enviar PDF si existe
+      if (result.pdfBuffer) {
+        try {
+          await bot.api.sendDocument(chatId, new InputFile(result.pdfBuffer, "chainright-certificate.pdf"), {
+            caption: "📄 Certificate of Authenticity",
+          });
+        } catch (err) {
+          console.error("Failed to send PDF:", err);
+        }
+      }
+    }
     return;
   }
 
-  // Detectar intención con DeepSeek NLP
-  const intent = await detectIntent(caption);
-
-  if (intent === "verify") {
-    await handlePhoto(bot, userId, username, ctx.message.photo, (text, opts) => ctx.reply(text, opts as any), ctx.chat.id);
-  } else if (intent === "help") {
-    await handleHelp(ctx as any);
-  } else if (intent === "stats") {
-    await handleStats(ctx as any);
-  } else {
-    // Intención ambigua: verificamos igual porque hay una imagen
-    const reply = await chatResponse(caption);
-    await ctx.reply(reply, { parse_mode: "HTML" });
-    await handlePhoto(bot, userId, username, ctx.message.photo, (text, opts) => ctx.reply(text, opts as any), ctx.chat.id);
-  }
+  // Fallback: verificar directamente
+  await handlePhoto(bot, userId, username, ctx.message.photo, (text, opts) => ctx.reply(text, opts as any), chatId);
 });
 
-// ─── Handler de documentos (sin comprimir) con NLP ───
+// ─── Handler unificado (documento) ───
 bot.on(":document", async (ctx) => {
   const userId = ctx.from?.id;
   const username = ctx.from?.username || ctx.from?.first_name;
@@ -78,90 +196,78 @@ bot.on(":document", async (ctx) => {
 
   const doc = ctx.message.document;
   const caption = ctx.message.caption || "";
+  const chatId = ctx.chat.id;
 
-  // Si no es imagen, ignorar
   const imageMimes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
   if (doc.mime_type && !imageMimes.includes(doc.mime_type)) return;
 
-  // Si no hay caption, verificar directamente
-  if (!caption.trim()) {
-    await handleDocument(bot, userId, username, doc.file_id, doc.file_name, doc.mime_type, (text, opts) => ctx.reply(text, opts as any), ctx.chat.id);
+  const { toolCalls } = await agentThink(caption, true);
+
+  if (toolCalls.length > 0) {
+    for (const toolCall of toolCalls) {
+      const result = await executeTool(toolCall, {
+        userId, username, chatId,
+        document: { file_id: doc.file_id, file_name: doc.file_name, mime_type: doc.mime_type },
+        reply: (text, opts) => ctx.reply(text, opts as any),
+      });
+
+      const finalResponse2 = await agentRespond(caption, toolCall, result.content);
+      await ctx.reply(finalResponse2, { disable_web_page_preview: true });
+
+      if (result.pdfBuffer) {
+        try {
+          await bot.api.sendDocument(chatId, new InputFile(result.pdfBuffer, "chainright-certificate.pdf"), {
+            caption: "📄 Certificate of Authenticity",
+          });
+        } catch (err) {
+          console.error("Failed to send PDF:", err);
+        }
+      }
+    }
     return;
   }
 
-  const intent = await detectIntent(caption);
-
-  if (intent === "verify") {
-    await handleDocument(bot, userId, username, doc.file_id, doc.file_name, doc.mime_type, (text, opts) => ctx.reply(text, opts as any), ctx.chat.id);
-  } else if (intent === "help") {
-    await handleHelp(ctx as any);
-  } else if (intent === "stats") {
-    await handleStats(ctx as any);
-  } else {
-    const reply = await chatResponse(caption);
-    await ctx.reply(reply, { parse_mode: "HTML" });
-    await handleDocument(bot, userId, username, doc.file_id, doc.file_name, doc.mime_type, (text, opts) => ctx.reply(text, opts as any), ctx.chat.id);
-  }
+  await handleDocument(bot, userId, username, doc.file_id, doc.file_name, doc.mime_type, (text, opts) => ctx.reply(text, opts as any), chatId);
 });
 
-// ─── Mensajes de solo texto — lenguaje natural ───
+// ─── Mensajes de solo texto ───
 bot.on("message", async (ctx) => {
   const userId = ctx.from?.id;
   const username = ctx.from?.username || ctx.from?.first_name;
   const text = ctx.message.text || "";
-
   if (!text.trim()) return;
 
-  const intent = await detectIntent(text);
+  const chatId = ctx.chat.id;
+  const { textResponse, toolCalls } = await agentThink(text, false);
 
-  if (intent === "verify") {
-    // Quiere verificar pero no envió imagen
-    await ctx.reply(
-      "📸 Send me the <b>image</b> you want to verify and I'll check its on-chain provenance!",
-      { parse_mode: "HTML" }
-    );
-  } else if (intent === "help") {
-    await handleHelp(ctx as any);
-  } else if (intent === "stats") {
-    await handleStats(ctx as any);
-  } else {
-    // Respuesta conversacional con DeepSeek
-    const reply = await chatResponse(text);
-    await ctx.reply(reply, { parse_mode: "HTML" });
+  if (toolCalls.length > 0) {
+    for (const toolCall of toolCalls) {
+      const result = await executeTool(toolCall, {
+        userId, username, chatId,
+        reply: (t, opts) => ctx.reply(t, opts as any),
+      });
+
+      const finalResponse3 = await agentRespond(text, toolCall, result.content);
+      await ctx.reply(finalResponse3, { disable_web_page_preview: true });
+    }
+    return;
   }
 
-  await appendLog({
-    userId: userId || 0,
-    username,
-    action: "command",
-    verified: false,
-    message: `NLP: ${intent || "unknown"} — "${text.slice(0, 80)}"`,
-  });
+  if (textResponse) {
+    await ctx.reply(textResponse, { parse_mode: "HTML", disable_web_page_preview: true });
+    return;
+  }
+
+  await ctx.reply("Send me an image and I'll verify it! 🔍", { parse_mode: "HTML" });
 });
 
-// ─── Error handler ───
-bot.catch((err) => {
-  console.error("Bot error:", err);
-});
+bot.catch((err) => console.error("Bot error:", err));
 
-// ─── Startup ───
 async function main() {
-  console.log("🤖 ChainRight Verification Agent starting...");
-  console.log("   Token:", BOT_TOKEN ? `${BOT_TOKEN.slice(0, 8)}...` : "NOT SET");
-  console.log("   NLP:", process.env.DEEPSEEK_API_KEY ? "DeepSeek enabled" : "Keyword fallback");
-
-  const contractAddr = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-  if (contractAddr && contractAddr !== "0x0000000000000000000000000000000000000000") {
-    console.log(`   Contract: ${contractAddr.slice(0, 10)}...`);
-  } else {
-    console.warn("   ⚠️  NEXT_PUBLIC_CONTRACT_ADDRESS not set — on-chain verification disabled");
-  }
-
+  console.log("🤖 ChainRight Autonomous Agent starting...");
+  console.log("   NLP:", process.env.DEEPSEEK_API_KEY ? "DeepSeek Function Calling" : "Keyword fallback");
   console.log("   Press Ctrl+C to stop");
   await bot.start();
 }
 
-main().catch((err) => {
-  console.error("Failed to start bot:", err);
-  process.exit(1);
-});
+main().catch((err) => { console.error("Failed:", err); process.exit(1); });
