@@ -1,0 +1,158 @@
+[
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xbc5ca639cd1ded9069531210023a04aff14b2026a8fff4eccb5b9ec9391864f2",
+    "verified": false,
+    "message": "No record found",
+    "id": "1777813076583-pmjfty",
+    "timestamp": "2026-05-03T12:57:56.583Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "command",
+    "verified": false,
+    "message": "Unknown message (not a photo)",
+    "id": "1777813129327-lwxs9b",
+    "timestamp": "2026-05-03T12:58:49.327Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xc1816205f80d8c0ab38e8bddb93b8a78839de643936b6df201bc7deb636d0910",
+    "verified": false,
+    "message": "No record found",
+    "id": "1777813143740-7w299h",
+    "timestamp": "2026-05-03T12:59:03.740Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777813599852-cl8ruo",
+    "timestamp": "2026-05-03T13:06:39.852Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777814330317-j3tyjz",
+    "timestamp": "2026-05-03T13:18:50.317Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777815115645-lxcnz6",
+    "timestamp": "2026-05-03T13:31:55.645Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "command",
+    "verified": false,
+    "message": "NLP: verify — \"hi i would like to check an imagen, Is it possible?\"",
+    "id": "1777815866809-k4ojow",
+    "timestamp": "2026-05-03T13:44:26.809Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777815889578-k6w2gh",
+    "timestamp": "2026-05-03T13:44:49.578Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777815919900-7efkh1",
+    "timestamp": "2026-05-03T13:45:19.900Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "command",
+    "verified": false,
+    "message": "NLP: stats — \"show my stats\"",
+    "id": "1777815947805-o2xm3s",
+    "timestamp": "2026-05-03T13:45:47.805Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "command",
+    "verified": false,
+    "message": "NLP: help — \"what is supposed that i cand do?\"",
+    "id": "1777815978572-xfjkqr",
+    "timestamp": "2026-05-03T13:46:18.572Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777816694931-paibhb",
+    "timestamp": "2026-05-03T13:58:14.931Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777817264230-5ypiij",
+    "timestamp": "2026-05-03T14:07:44.230Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xc1816205f80d8c0ab38e8bddb93b8a78839de643936b6df201bc7deb636d0910",
+    "verified": false,
+    "message": "No record found (photo)",
+    "id": "1777817634887-ji6zfl",
+    "timestamp": "2026-05-03T14:13:54.887Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777817657804-l58f44",
+    "timestamp": "2026-05-03T14:14:17.804Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1777818393857-3vsqzk",
+    "timestamp": "2026-05-03T14:26:33.857Z"
+  }
+]
