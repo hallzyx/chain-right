@@ -1,0 +1,17 @@
+{
+  "users": {
+    "940982207": {
+      "userId": 940982207,
+      "username": "arrozdev",
+      "totalScans": 12,
+      "verifiedCount": 9,
+      "lastScan": "2026-05-03T14:26:33.855Z",
+      "lastMerkleRoot": "0xae5a02e6441a844c0eb0a562dc33c78f66ade201ef04279fb48bbcd116e2e4c2"
+    }
+  },
+  "global": {
+    "totalScans": 12,
+    "totalVerified": 9,
+    "startedAt": "2026-05-03T12:57:56.582Z"
+  }
+}
