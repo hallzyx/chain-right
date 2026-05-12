@@ -127,6 +127,23 @@ The agent **autonomously decides** which tool to invoke using DeepSeek's functio
 
 ---
 
+## Documentation
+
+| File | Description |
+|---|---|
+| [`brief.md`](./brief.md) | Executive pitch — problem, solution, why it wins |
+| [`spec.md`](./spec.md) | Technical architecture, key decisions, file structure |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Visual architecture diagrams — data flows, components, 0G layers |
+| [`product.md`](./product.md) | Full product vision — features, demo flow, agent capabilities |
+| [`stack.md`](./stack.md) | Technology stack — dependencies, env vars, 0G network config |
+| [`userflow_generar_mintear.md`](./userflow_generar_mintear.md) | Create flow — prompt, generate, store, mint, certificate |
+| [`userflow_verificar.md`](./userflow_verificar.md) | Verify flow — upload, 5-step analysis, wow moment |
+| [`userflow_agent_verify.md`](./userflow_agent_verify.md) | Agent flow — NLP, function calling, memory, PDF delivery |
+| [`AGENTS.md`](./AGENTS.md) | Project orchestration — rules, skills, 0G critical patterns |
+| [`.stitch/DESIGN.md`](./.stitch/DESIGN.md) | Black & Amber design system (from Google Stitch) |
+
+---
+
 ## License
 
 MIT — Built for the 0G Hackathon 2026.
