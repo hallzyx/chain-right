@@ -759,6 +759,7 @@ export async function chatCompletion(
     let targetProvider = providerAddress;
 
     if (!targetProvider) {
+      console.log("[chatCompletion] Discovering chatbot providers...");
       const providers = await discoverProviders("chatbot");
       if (providers.length === 0) {
         return {
@@ -773,11 +774,16 @@ export async function chatCompletion(
       }
       const teeProvider = providers.find((p) => p.teeVerified);
       targetProvider = teeProvider ? teeProvider.address : providers[0].address;
+      console.log(`[chatCompletion] Selected provider: ${targetProvider.substring(0, 10)}...`);
     }
 
-    // ============ PASO 2: Preparar y enviar request ============
+    // ============ PASO 2: Obtener metadata del provider ============
+    console.log("[chatCompletion] Getting service metadata (this may trigger an on-chain check)...");
     const { endpoint, model } = await broker.inference.getServiceMetadata(targetProvider);
+    console.log(`[chatCompletion] Endpoint: ${endpoint}`);
+    console.log(`[chatCompletion] Model: ${model}`);
 
+    // ============ PASO 3: Generar headers de autenticación ============
     const requestBody: Record<string, unknown> = {
       model: model || "qwen/qwen-2.5-7b-instruct",
       messages,
@@ -811,9 +817,10 @@ export async function chatCompletion(
     // Si falla por saldo insuficiente, depositar 0.1 0G del wallet on-chain al ledger y reintentar
     if (!response.ok) {
       const errorText = await response.text();
+      console.log("[chatCompletion] Error response:", errorText.substring(0, 300));
 
       if (isInsufficientBalanceError(errorText)) {
-        console.log("[chatCompletion] Insufficient balance, auto-depositing 0.1 0G from on-chain wallet...");
+        console.log("[chatCompletion] Insufficient balance detected, auto-depositing 0.1 0G from on-chain wallet...");
         try {
           await broker.ledger.depositFund(0.1);
           console.log("[chatCompletion] Auto-deposit successful, retrying...");
