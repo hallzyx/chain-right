@@ -12,7 +12,30 @@
 import "dotenv/config";
 import { chatCompletion } from "@/lib/compute";
 import type { ChatMessage, ToolDefinition } from "@/lib/compute";
+import { ethers } from "ethers";
+import { createZGComputeNetworkBroker } from "@0glabs/0g-serving-broker";
 import { AGENT_TOOLS } from "./tools";
+
+// Cache del broker para no reinstanciarlo
+let _broker: any = null;
+async function getBroker() {
+  if (!_broker) {
+    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+    _broker = await createZGComputeNetworkBroker(wallet);
+  }
+  return _broker;
+}
+
+async function getLedgerBalance(): Promise<string> {
+  try {
+    const broker = await getBroker();
+    const ledger = await broker.ledger.getLedger();
+    return ethers.formatEther(ledger[1] as bigint);
+  } catch {
+    return "?";
+  }
+}
 
 const SYSTEM_PROMPT = `You are the ChainRight Verification Agent. You verify the cryptographic provenance of AI-generated images on the 0G decentralized network.
 
@@ -75,12 +98,21 @@ export async function agentThink(
     const result = await chatCompletion(messages, toOpenAITools());
 
     if (!result.success) {
-      console.error(`0G Compute agent error: ${result.error}`);
+      console.error(`⚠️ 0G Compute FAILED: ${result.error}`);
+      console.log("   → Using keyword fallback");
       return fallbackAgent(userMessage, hasImage);
+    }
+
+    // Mostrar cost si hay ZG-Res-Key
+    if (result.zkResKey) {
+      console.log(`   🆔 ChatID: ${result.zkResKey.substring(0, 8)}...`);
+      console.log(`   🏛️ Provider: ${result.providerAddress.substring(0, 10)}...`);
+      console.log(`   🤖 Model: ${result.model}`);
     }
 
     // Si hay tool calls → el agente decidió ejecutar herramientas
     if (result.toolCalls.length > 0) {
+      console.log(`✅ 0G Compute decided tool: ${result.toolCalls[0].name}`);
       return {
         textResponse: null,
         toolCalls: result.toolCalls,
@@ -88,12 +120,14 @@ export async function agentThink(
     }
 
     // Si no hay tool calls, es una respuesta directa de texto
+    console.log("✅ 0G Compute responded with text (no tools)");
     return {
       textResponse: result.content || "I'm here to verify images! Send me a photo. 🔍",
       toolCalls: [],
     };
   } catch (error) {
-    console.error("0G Compute agent error:", error);
+    console.error("⚠️ 0G Compute exception:", error);
+    console.log("   → Using keyword fallback");
     return fallbackAgent(userMessage, hasImage);
   }
 }
@@ -138,12 +172,18 @@ export async function agentRespond(
     const result = await chatCompletion(messages, undefined);
 
     if (!result.success) {
-      console.error(`0G Compute respond error: ${result.error}`);
+      console.error(`⚠️ 0G Compute respond FAILED: ${result.error}`);
+      console.log("   → Using raw tool result (no NLP)");
       return toolResult;
     }
 
+    console.log(`   🆔 ChatID: ${result.zkResKey.substring(0, 8)}...`);
+    console.log(`   🏛️ Provider: ${result.providerAddress.substring(0, 10)}...`);
+    console.log(`   🤖 Model: ${result.model}`);
+    console.log(`   ✅ 0G Compute generated final response`);
     return result.content || toolResult;
-  } catch {
+  } catch (err) {
+    console.error("⚠️ 0G Compute respond exception:", err);
     return toolResult;
   }
 }
