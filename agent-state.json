@@ -3,15 +3,15 @@
     "940982207": {
       "userId": 940982207,
       "username": "arrozdev",
-      "totalScans": 13,
-      "verifiedCount": 10,
-      "lastScan": "2026-05-16T03:35:52.487Z",
-      "lastMerkleRoot": "0x3c1c1a903871cadee0defa0d199997befd881f31285bd4fda4b73574ca9efc8d"
+      "totalScans": 14,
+      "verifiedCount": 11,
+      "lastScan": "2026-05-16T14:55:52.967Z",
+      "lastMerkleRoot": "0x74b0590cd65e680db4b2e7b1da2cf5ed4edf445e157127aa897789e8a074e2b2"
     }
   },
   "global": {
-    "totalScans": 13,
-    "totalVerified": 10,
+    "totalScans": 14,
+    "totalVerified": 11,
     "startedAt": "2026-05-03T12:57:56.582Z"
   }
 }

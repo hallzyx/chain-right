@@ -89,6 +89,34 @@ export default function CreatePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Resize image blob to max dimension (avoids provider 413 errors)
+  async function resizeImageBlob(blob: Blob, maxDim: number): Promise<Blob> {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Failed to load image for resize"));
+      img.src = url;
+    });
+    URL.revokeObjectURL(url);
+
+    let { width, height } = img;
+    if (width <= maxDim && height <= maxDim) return blob; // No resize needed
+
+    if (width > height) { height = Math.round((height / width) * maxDim); width = maxDim; }
+    else { width = Math.round((width / height) * maxDim); height = maxDim; }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(img, 0, 0, width, height);
+
+    return new Promise((resolve) => {
+      canvas.toBlob((resized) => resolve(resized!), "image/jpeg", 0.85);
+    });
+  }
+
   // Load work from /my-works for AI Edit
   useEffect(() => {
     const editWorkId = searchParams.get("editWorkId");
@@ -101,9 +129,11 @@ export default function CreatePage() {
         if (!json.success) return;
         const works: DbWork[] = json.works;
         const work = works.find((w: DbWork) => w.id === editWorkId);
-        if (!work || !work.imageDataUrl) return;
+        if (!work) return;
 
-        let imageUrl = work.imageDataUrl;
+        // Prefer fileStorageUrl (StorageScan URL) over imageDataUrl (could be large base64)
+        let imageUrl = work.fileStorageUrl || work.imageDataUrl;
+        if (!imageUrl) return;
 
         // If it's a StorageScan URL (not directly displayable), download via API
         if (imageUrl.includes("storagescan") && imageUrl.includes("#/file/")) {
@@ -328,7 +358,9 @@ export default function CreatePage() {
           prompt: imageResult.prompt || "Original Work (no AI)",
           source: mode === "register" ? "upload" : (imageResult.source || "0g-compute"),
           model: imageResult.model,
-          imageDataUrl: mode === "register" ? (uploadPreviewUrl || storageResult.fileStorageUrl || "") : (imageResult.imageUrl || ""),
+          imageDataUrl: mode === "register"
+            ? (storageResult.fileStorageUrl || uploadPreviewUrl || "")
+            : (imageResult.imageUrl || ""),
           merkleRoot: storageResult.merkleRoot,
           storageTxHash: storageResult.transactionHash,
           sequenceNumber: storageResult.sequenceNumber,
@@ -406,22 +438,41 @@ export default function CreatePage() {
     setStep("editing");
 
     try {
-      let imageToSend = uploadPreviewUrl;
+      let imageBlob: Blob;
 
-      // Si la imagen viene de StorageScan (URL http), descargarla primero
+      // Si la imagen viene de StorageScan (URL http), descargarla
       if (uploadPreviewUrl.startsWith("http")) {
         const resp = await fetch(uploadPreviewUrl);
-        const blob = await resp.blob();
-        imageToSend = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve(reader.result as string);
-          };
-          reader.readAsDataURL(blob);
-        });
+        imageBlob = await resp.blob();
+      } else {
+        // Convertir data URL a Blob
+        const base64 = uploadPreviewUrl.includes(",") ? uploadPreviewUrl.split(",")[1] : uploadPreviewUrl;
+        const byteString = atob(base64);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        imageBlob = new Blob([ab], { type: "image/png" });
       }
 
-      const result = await actionEditImage(imageToSend, editPrompt);
+      // Resize if image is larger than 500KB (provider nginx limit)
+      const maxSize = 512 * 1024;
+      if (imageBlob.size > maxSize) {
+        imageBlob = await resizeImageBlob(imageBlob, 1024);
+      }
+      console.log("[edit] Final image size:", (imageBlob.size / 1024).toFixed(0), "KB");
+
+      // Enviar via FormData API (evita server action serialization limits)
+      const formData = new FormData();
+      formData.append("image", imageBlob, "image.png");
+      formData.append("prompt", editPrompt);
+
+      const resp = await fetch("/api/compute/edit", {
+        method: "POST",
+        body: formData,
+      });
+      const result: ImageGenerationResult = await resp.json();
 
       if (!result.success) {
         setError(result.error || "Error editing image");
