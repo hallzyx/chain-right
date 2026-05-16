@@ -1,7 +1,7 @@
 # ChainRight
 
-> **Verifiable AI Provenance on 0G.** Generate, register, edit with AI, store, mint, and verify — all on the 0G decentralized network.  
-> Built for the 0G Hackathon 2026 — Track 2: Autonomous Agents.
+> **Verifiable AI Provenance on 0G.** Prove human authorship in the age of AI. Register your original work, create with AI assistance, and own the cryptographic evidence.  
+> Built for the 0G Hackathon 2026 — Track 3: Agentic Economy & Autonomous Applications.
 
 ---
 
@@ -27,12 +27,12 @@ ChainRight gives every AI-generated image a permanent, verifiable birth certific
 
 | Mode | Description |
 |---|---|
-| **Web App** | Next.js 15 frontend. Generate (Flux Turbo), Register Original (upload only), AI Edit (qwen-image-edit-2511) → store on 0G Storage → mint NFT on 0G Chain → verify authenticity with Wow Moment. |
+| **Web App** | Next.js 15 frontend. Register Original → **AI Edit** ⭐ (core feature) → store → mint → verify. Generate (Flux Turbo) also supported as a secondary mode. |
 | **Telegram Agent** | Autonomous AI agent with **0G Compute NLP** (qwen-2.5-7b-instruct). Natural language verification — send an image, ask "is this real?", get full provenance + PDF certificate. No external APIs. |
 
 ### 0G Layers Used
 
-- **0G Compute** — Flux Turbo (text-to-image), qwen-image-edit-2511 (AI editing), qwen-2.5-7b (agent NLP)
+- **0G Compute** — qwen-image-edit-2511 (AI editing, core) · qwen-2.5-7b (agent NLP) · Flux Turbo (generation, secondary)
 - **0G Storage** — Merkle-proof file storage + KV/Log for agent persistent memory
 - **0G Chain** — ChainRightERC721 NFT (v3) with parent-child provenance chain
 
