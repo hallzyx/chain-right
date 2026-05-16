@@ -1,134 +1,86 @@
 # Pivot 03 — Agent Upgrade: 0G Compute LLM over DeepSeek
 
-> **What:** Replace the current DeepSeek API (external) with `qwen/qwen-2.5-7b-instruct` running on **0G Compute** for the Telegram agent's NLP and Function Calling.
+> **What:** Replaced DeepSeek API with `qwen/qwen-2.5-7b-instruct` on **0G Compute** for the Telegram agent's NLP and Function Calling.
 >
-> **Why:** Currently the agent uses DeepSeek (off-chain, not verifiable). Switching to 0G Compute means:
-> - Everything runs on **0G infrastructure** — no external APIs
-> - TEE-verified inference execution
-> - ZG-Res-Key proof for every agent decision
-> - Dramatically lower cost: ~0.000372 0G (~$0.0002 USD) per verification
+> **Why:** Everything now runs on **0G infrastructure** — no external APIs. TEE-verified inference with ZG-Res-Key proof for every agent decision. Dramatically lower cost.
 
 ---
 
-## Current Architecture (DeepSeek)
+## Architecture
 
 ```
-User message → fetch("api.deepseek.com/v1/chat/completions") → tool_calls
+User message → agentThink() → 0G Compute (qwen-2.5-7b-instruct)
+    → decides tool (verify_image / show_help / show_stats / chat_reply)
+    → executeTool() → tool result
+    → agentRespond() → 0G Compute generates final response
 ```
 
-## Target Architecture (0G Compute)
+---
 
-```
-User message → 0G Compute Broker → provider discovery (chatbot)
-             → Inference(query="classify intent: ...", model="qwen-2.5-7b-instruct")
-             → processResponse() → ZG-Res-Key
-             → tool_calls
-```
+## Implementation (In-Place)
+
+Unlike the original plan (new `compute-nlp.ts` file), the implementation modified `nlp.ts` **in-place**:
+- `agentThink()` — sends messages + tool definitions to 0G Compute
+- `agentRespond()` — sends tool result back for final response generation
+- `fallbackAgent()` — keyword-based fallback (no DeepSeek, no APIs)
+
+The `chatCompletion()` function lives in `lib/compute.ts` and handles:
+- Provider discovery (`chatbot` service type)
+- Auth header generation (signed with JSON body string)
+- **Auto-deposit**: If provider returns "insufficient balance", deposits 0.1 0G from on-chain wallet to compute ledger and retries
+- `processResponse()` call for fee settlement
+- Tool calling in OpenAI-compatible format
 
 ---
 
 ## Key Differences
 
-| Aspect | DeepSeek (current) | 0G Compute (target) |
+| Aspect | DeepSeek (before) | 0G Compute (after) |
 |---|---|---|
-| **API endpoint** | `api.deepseek.com` | 0G Compute Network (decentralized) |
+| **API** | `api.deepseek.com` | 0G Compute Network (decentralized) |
 | **Model** | `deepseek-chat` | `qwen/qwen-2.5-7b-instruct` |
-| **Cost** | ~$0.0005/query | ~0.000372 0G (~$0.0002 USD) |
 | **TEE-verified** | ❌ No | ✅ Yes |
 | **ZG-Res-Key proof** | ❌ No | ✅ Yes |
-| **Provider discovery** | ❌ Fixed | ✅ Dynamic |
-| **Fee settlement** | ❌ N/A | ✅ `processResponse()` required |
+| **Provider** | Fixed | Dynamic via `discoverProviders("chatbot")` |
+| **Fee settlement** | N/A | `processResponse()` required |
+| **Cost** | ~$0.0005/query | ~0.0000001 0G/query |
 
 ---
 
-## Implementation Plan
+## Auto-Funding Flow
 
-### 1. Create `agent/utils/compute-nlp.ts`
-
-Adapt the existing `lib/compute.ts` (text-to-image) for **chatbot** service type:
-
-```typescript
-// Provider discovery for chatbot
-const providers = await broker.queryAgent({
-  model: "qwen/qwen-2.5-7b-instruct",
-  serviceType: "chatbot",
-});
-
-// Acknowledge provider
-await broker.inference.acknowledgeProviderSigner(providerAddress);
-
-// Inference
-const response = await broker.inference.process({
-  providerAddress,
-  model: "qwen/qwen-2.5-7b-instruct",
-  messages: [{ role: "user", content: userMessage }],
-  tools: AGENT_TOOLS,
-  tool_choice: "auto",
-});
-
-// Extract ZG-Res-Key
-const chatID = response.headers.get("ZG-Res-Key");
-
-// Fee settlement (CRITICAL — must be called after EVERY inference)
-await broker.inference.processResponse(providerAddress, chatID, usageData);
+```
+Request → Provider says "insufficient balance"
+    ↓
+Deposit 0.1 0G from on-chain wallet → compute ledger
+    ↓
+Retry request (fresh auth headers)
+    ↓
+Success → processResponse() → done
 ```
 
-### 2. Update `agent/utils/tools.ts`
-
-No changes needed — tool definitions are identical regardless of LLM backend.
-
-### 3. Update `agent/bot.ts`
-
-Swap the import:
-
-```typescript
-// BEFORE
-import { agentThink, agentRespond } from "./utils/nlp";
-
-// AFTER
-import { agentThink, agentRespond } from "./utils/compute-nlp";
-```
-
-### 4. Update `agent/utils/format.ts`
-
-Adjust prompts for qwen-2.5-7b's system prompt format (it uses a different instruction-following style than DeepSeek).
-
-### 5. Remove DeepSeek Dependency
-
-```bash
-# Remove from .env
-# DEEPSEEK_API_KEY no longer needed
-```
+If deposit fails (wallet has no ETH for gas), falls back to keyword-based routing.
 
 ---
 
-## Cost Analysis
+## What Was Implemented
 
-| Operation | Tokens | Cost (0G) | Cost (USD) |
-|---|---|---|---|
-| Intent classification (1 query) | ~200 | ~0.000062 | ~$0.00003 |
-| Full verification (think + respond) | ~1,200 | ~0.000372 | ~$0.0002 |
-| 1,000 verifications | ~1.2M | ~0.372 | ~$0.20 |
-
-At current 0G testnet faucet rates, you can run **~2,500 verifications** with a single faucet claim.
-
----
-
-## Files to Modify
-
-| File | Change |
+| File | Changes |
 |---|---|
-| `agent/utils/compute-nlp.ts` | **NEW** — NLP via 0G Compute chatbot (qwen-2.5-7b) |
-| `agent/utils/nlp.ts` | Keep as fallback (if 0G Compute has no providers) |
-| `agent/bot.ts` | Import from `compute-nlp.ts` instead of `nlp.ts` |
-| `lib/compute.ts` | Add `chatbot` service type support (currently only `text-to-image`) |
-| `lib/types.ts` | Add `chatbot` to `ComputeProvider.serviceType` |
-| `.env` | Remove `DEEPSEEK_API_KEY` |
-| `agent/utils/format.ts` | Tweak prompts for qwen-2.5-7b |
-| `userflow_agent_verify.md` | Update NLP section to reference 0G Compute |
-| `stack.md` | Remove DeepSeek, add 0G Compute NLP |
-| `spec.md` | Update agent NLP architecture |
-| `AGENTS.md` | Update agent skills table |
+| `agent/utils/nlp.ts` | Replaced DeepSeek API with `chatCompletion()` from `lib/compute.ts` |
+| `agent/bot.ts` | Updated comments, removed DeepSeek references |
+| `lib/compute.ts` | Added `chatCompletion()` with tool calling, auto-deposit, processResponse |
+| `lib/types.ts` | Added `ChatMessage`, `ChatCompletionResult`, `ToolDefinition` types |
+
+---
+
+## Persistent Memory (0G Storage)
+
+On Ctrl+C, the agent syncs state to 0G Storage:
+- `agent-state.json` — user stats, counters
+- `agent-log.json` — verification history
+
+On restart, it downloads and restores both files.
 
 ---
 
@@ -136,16 +88,6 @@ At current 0G testnet faucet rates, you can run **~2,500 verifications** with a 
 
 | Layer | Usage |
 |---|---|
-| **0G Compute** | `qwen/qwen-2.5-7b-instruct` — TEE-verified chatbot inference for agent NLP + Function Calling |
-| **0G Storage** | KV/Log memory (unchanged from current agent) |
-| **0G Chain** | Provenance queries (unchanged from current agent) |
-
----
-
-## Why This Upgrade Wins
-
-1. **100% on 0G** — No external APIs, no API keys, no rate limits, no data leaving the 0G ecosystem
-2. **TEE-verifiable** — Every agent decision is cryptographically provable via ZG-Res-Key
-3. **Cheaper** — 0G Compute is ~2.5x cheaper than DeepSeek for comparable inference quality
-4. **More decentralized** — Dynamic provider discovery means no single point of failure
-5. **Track 2 alignment** — The judges will see every 0G layer used: Compute (NLP) + Storage (memory) + Chain (provenance)
+| **0G Compute** | `qwen/qwen-2.5-7b-instruct` — TEE-verified chatbot for agent NLP + Function Calling |
+| **0G Storage** | KV/Log memory (agent state + log persistence) |
+| **0G Chain** | Provenance queries (unchanged from original agent) |
