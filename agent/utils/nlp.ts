@@ -1,17 +1,18 @@
 /**
- * NLP module — Natural Language Understanding via DeepSeek API.
+ * NLP module — Natural Language Understanding via 0G Compute.
  *
- * El agente envía el mensaje del usuario + tools disponibles a DeepSeek.
- * DeepSeek decide autónomamente qué tool llamar (Function Calling).
- * El código ejecuta la tool y devuelve el resultado a DeepSeek.
- * DeepSeek genera la respuesta final en lenguaje natural.
+ * Usa qwen/qwen-2.5-7b-instruct en 0G Compute Network para function calling.
+ * El agente envía el mensaje del usuario + tools disponibles al LLM descentralizado.
+ * El LLM decide autónomamente qué tool llamar (Function Calling).
+ * El código ejecuta la tool y devuelve el resultado al LLM.
+ * El LLM genera la respuesta final en lenguaje natural.
+ *
+ * Fallback a keyword matching si 0G Compute no está disponible.
  */
 import "dotenv/config";
+import { chatCompletion } from "@/lib/compute";
+import type { ChatMessage, ToolDefinition } from "@/lib/compute";
 import { AGENT_TOOLS } from "./tools";
-import type { ToolDefinition } from "./tools";
-
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-const DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
 
 const SYSTEM_PROMPT = `You are the ChainRight Verification Agent. You verify the cryptographic provenance of AI-generated images on the 0G decentralized network.
 
@@ -21,40 +22,15 @@ FORMAT RULES:
 - Keep responses concise and direct.
 
 Your capabilities:
-- **verify_image**: Use when the user sends an image and wants to check its on-chain provenance.
-- **show_help**: Use when the user asks what you can do or how to use you.
-- **show_stats**: Use when the user asks about their verification statistics or history.
-- **chat_reply**: Use for small talk, greetings, or general questions.
+- verify_image: Use when the user sends an image and wants to check its on-chain provenance.
+- show_help: Use when the user asks what you can do or how to use you.
+- show_stats: Use when the user asks about their verification statistics or history.
+- chat_reply: Use for small talk, greetings, or general questions.
 
 CRITICAL RULES:
 1. If the user mentions verifying/checking/validating AND there's an image attached → call verify_image with has_image=true.
 2. If the user mentions verifying/checking/validating but NO image → call verify_image with has_image=false and explain they need to send an image.
 3. Always be warm, direct, and helpful. Premium, minimalist brand voice.`;
-
-interface DeepSeekMessage {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string;
-  tool_call_id?: string;
-  tool_calls?: Array<{
-    id: string;
-    type: "function";
-    function: { name: string; arguments: string };
-  }>;
-}
-
-interface DeepSeekResponse {
-  choices: {
-    message: {
-      content: string | null;
-      tool_calls?: Array<{
-        id: string;
-        type: "function";
-        function: { name: string; arguments: string };
-      }>;
-    };
-    finish_reason: string;
-  }[];
-}
 
 export interface ToolCall {
   id: string;
@@ -62,8 +38,20 @@ export interface ToolCall {
   arguments: Record<string, unknown>;
 }
 
+// Convert AGENT_TOOLS to OpenAI tool definitions
+function toOpenAITools(): ToolDefinition[] {
+  return AGENT_TOOLS.map((tool) => ({
+    type: "function" as const,
+    function: {
+      name: tool.function.name,
+      description: tool.function.description,
+      parameters: tool.function.parameters as Record<string, unknown>,
+    },
+  }));
+}
+
 /**
- * Envía el mensaje del usuario a DeepSeek con las tools disponibles.
+ * Envía el mensaje del usuario a 0G Compute con las tools disponibles.
  * Devuelve la respuesta del LLM y/o las tool calls que decidió hacer.
  */
 export async function agentThink(
@@ -73,12 +61,7 @@ export async function agentThink(
   textResponse: string | null;
   toolCalls: ToolCall[];
 }> {
-  if (!DEEPSEEK_API_KEY) {
-    // Sin API key: fallback determinístico
-    return fallbackAgent(userMessage, hasImage);
-  }
-
-  const messages: DeepSeekMessage[] = [
+  const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
@@ -89,60 +72,34 @@ export async function agentThink(
   ];
 
   try {
-    const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages,
-        tools: AGENT_TOOLS,
-        tool_choice: "auto",
-        max_tokens: 200,
-        temperature: 0.3,
-      }),
-    });
+    const result = await chatCompletion(messages, toOpenAITools());
 
-    if (!response.ok) {
-      console.error(`DeepSeek agent error: ${response.status}`);
+    if (!result.success) {
+      console.error(`0G Compute agent error: ${result.error}`);
       return fallbackAgent(userMessage, hasImage);
     }
 
-    const data: DeepSeekResponse = await response.json();
-    const choice = data.choices?.[0];
-    if (!choice) return fallbackAgent(userMessage, hasImage);
-
-    const msg = choice.message;
-
     // Si hay tool calls → el agente decidió ejecutar herramientas
-    if (msg.tool_calls && msg.tool_calls.length > 0) {
-      const toolCalls: ToolCall[] = msg.tool_calls.map((tc) => ({
-        id: tc.id,
-        name: tc.function.name,
-        arguments: JSON.parse(tc.function.arguments || "{}"),
-      }));
-
+    if (result.toolCalls.length > 0) {
       return {
         textResponse: null,
-        toolCalls,
+        toolCalls: result.toolCalls,
       };
     }
 
     // Si no hay tool calls, es una respuesta directa de texto
     return {
-      textResponse: msg.content || "I'm here to verify images! Send me a photo. 🔍",
+      textResponse: result.content || "I'm here to verify images! Send me a photo. 🔍",
       toolCalls: [],
     };
   } catch (error) {
-    console.error("DeepSeek agent error:", error);
+    console.error("0G Compute agent error:", error);
     return fallbackAgent(userMessage, hasImage);
   }
 }
 
 /**
- * Envía el resultado de una tool de vuelta a DeepSeek
+ * Envía el resultado de una tool de vuelta a 0G Compute
  * para que genere la respuesta final al usuario.
  */
 export async function agentRespond(
@@ -150,11 +107,7 @@ export async function agentRespond(
   toolCall: ToolCall,
   toolResult: string
 ): Promise<string> {
-  if (!DEEPSEEK_API_KEY) {
-    return toolResult;
-  }
-
-  const messages: DeepSeekMessage[] = [
+  const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
@@ -182,33 +135,21 @@ export async function agentRespond(
   ];
 
   try {
-    const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages,
-        max_tokens: 300,
-        temperature: 0.5,
-      }),
-    });
+    const result = await chatCompletion(messages, undefined);
 
-    if (!response.ok) {
+    if (!result.success) {
+      console.error(`0G Compute respond error: ${result.error}`);
       return toolResult;
     }
 
-    const data: DeepSeekResponse = await response.json();
-    return data.choices?.[0]?.message?.content || toolResult;
+    return result.content || toolResult;
   } catch {
     return toolResult;
   }
 }
 
 /**
- * Fallback determinístico cuando DeepSeek no está disponible.
+ * Fallback determinístico cuando 0G Compute no está disponible.
  * Usa keywords para decidir la acción.
  */
 function fallbackAgent(

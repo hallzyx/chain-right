@@ -1,12 +1,12 @@
 /**
  * ChainRight Verification Agent — Autonomous AI Agent.
  *
- * Usa DeepSeek Function Calling para decidir autónomamente
- * qué acciones tomar basándose en el mensaje del usuario.
+ * Usa 0G Compute (qwen/qwen-2.5-7b-instruct) para function calling.
+ * Todo corre en la red descentralizada de 0G.
  *
  * Flujo:
- *   Usuario → agentThink() → DeepSeek decide tool → ejecutamos tool
- *   → DeepSeek genera respuesta final con todos los detalles
+ *   Usuario → agentThink() → 0G Compute decide tool → ejecutamos tool
+ *   → agentRespond() → 0G Compute genera respuesta final
  */
 import { Bot, InputFile } from "grammy";
 import type { BotContext } from "./context";
@@ -93,7 +93,7 @@ async function executeTool(
         };
       }
 
-      // Construir respuesta rica con TODOS los detalles para DeepSeek
+      // Construir respuesta rica con TODOS los detalles para el LLM
       let details = `Verification result for image:\n`;
       details += `Merkle Root: ${data.merkleRoot}\n`;
       details += `Verified: ${data.verified ? "YES" : "NO"}\n`;
@@ -182,7 +182,7 @@ bot.on(":photo", async (ctx) => {
         reply: (text, opts) => ctx.reply(text, opts as any),
       });
 
-      // DeepSeek genera la respuesta final incluyendo TODOS los detalles
+      // 0G Compute genera la respuesta final incluyendo TODOS los detalles
       const finalResponse = await agentRespond(caption, toolCall, result.content);
       await ctx.reply(finalResponse, { disable_web_page_preview: true });
 
@@ -281,7 +281,8 @@ bot.catch((err) => console.error("Bot error:", err));
 
 async function main() {
   console.log("🤖 ChainRight Autonomous Agent starting...");
-  console.log("   NLP:", process.env.DEEPSEEK_API_KEY ? "DeepSeek Function Calling" : "Keyword fallback");
+  console.log("   NLP: 0G Compute (qwen/qwen-2.5-7b-instruct)");
+  console.log("   Fallback: Keyword-based deterministic routing");
 
   // Init 0G Storage memory
   await initMemory().catch((err) => console.warn("   ⚠️  0G Storage memory init failed:", err.message));
