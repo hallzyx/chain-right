@@ -6,31 +6,36 @@
 // Procedencia de una obra
 // ============================================
 export interface Provenance {
-  merkleRoot: string;           // bytes32 como string hex
-  zkResKey: string;             // ZG-Res-Key de la inferencia
-  prompt: string;               // Prompt exacto usado
-  model: string;                // Modelo de IA usado
-  sequenceNumber: string;       // txSeq de 0G Storage — linkea a storagescan
-  timestamp: bigint;            // Timestamp del bloque
-  creator: string;              // Address del creador
-  exists: boolean;              // Si el registro existe
+  merkleRoot: string;              // bytes32 como string hex
+  merkleRootOriginal: string;      // bytes32 de la obra original (0x0 si es original)
+  zkResKey: string;                // ZG-Res-Key de la inferencia
+  prompt: string;                  // Prompt de edición (vacío si es obra original)
+  model: string;                   // "none" para original, "qwen-image-edit-2511" etc.
+  sequenceNumber: string;          // txSeq de 0G Storage
+  parentTokenId: bigint;           // 0 si es obra original
+  timestamp: bigint;               // Timestamp del bloque
+  creator: string;                 // Address del creador
+  exists: boolean;                 // Si el registro existe
 }
 
+/** Modo de obra: original (sin IA) o asistida por IA. */
+export type WorkMode = "original" | "ai-assist";
+
 // ============================================
-// Resultado de generar una imagen
+// Resultado de generar/editar una imagen
 // ============================================
 export interface ImageGenerationResult {
   success: boolean;
-  fallbackRequired?: boolean;   // true cuando no hay providers 0G y se requiere consentimiento
-  fallbackReason?: string;      // motivo de fallback
+  fallbackRequired?: boolean;
+  fallbackReason?: string;
   source?: "0g-compute" | "openai-fallback";
-  imageUrl?: string;            // URL de la imagen (o base64)
-  imageData?: Uint8Array;       // Datos binarios de la imagen
-  zkResKey: string;             // ZG-Res-Key del header
-  providerAddress: string;      // Provider que ejecutó la inferencia
-  model: string;                // Modelo usado
-  prompt: string;               // Prompt usado
-  error?: string;               // Error si falló
+  imageUrl?: string;
+  imageData?: Uint8Array;
+  zkResKey: string;
+  providerAddress: string;
+  model: string;
+  prompt: string;
+  error?: string;
 }
 
 // ============================================
@@ -83,6 +88,7 @@ export interface VerificationResult {
   verified: boolean;             // true si coincide con algún registro
   merkleRoot: string;            // Merkle Root calculado
   provenance?: Provenance;       // Datos de procedencia si existe
+  parentProvenance?: Provenance; // NEW: obra original si tiene parentTokenId
   message: string;               // Mensaje para el usuario
 }
 
@@ -91,7 +97,7 @@ export interface VerificationResult {
 // ============================================
 export interface ComputeProvider {
   address: string;               // Address del provider
-  serviceType: string;           // 'chatbot', 'text-to-image', 'speech-to-text'
+  serviceType: string;           // 'chatbot', 'text-to-image', 'image-editing', 'speech-to-text'
   model: string;                 // Modelo ofrecido (ej: 'flux-turbo')
   teeVerified: boolean;          // Si corre en TEE (Trusted Execution Environment)
   url: string;                   // URL del endpoint
@@ -103,6 +109,25 @@ export interface ComputeProvider {
 export interface ComputeAccount {
   totalBalance: bigint;
   availableBalance: bigint;
+}
+
+/** Estado completo del sistema 0G Compute para la UI. */
+export interface ComputeStatus {
+  accountExists: boolean;
+  walletBalance: string;          // On-chain balance en 0G (string formateada)
+  computeBalance: string;         // Compute ledger available en 0G
+  computeTotalBalance: string;    // Compute ledger total en 0G
+  providers: {
+    textToImage: { available: boolean; model: string; address: string; teeVerified: boolean };
+    imageEditing: { available: boolean; model: string; address: string; teeVerified: boolean };
+    chatbot: { available: boolean; model: string; address: string; teeVerified: boolean };
+  };
+  providerBalances: Record<string, string>;  // Saldo por provider address
+  costs: {
+    accountMinDeposit: string;    // 0.1 0G
+    providerTransfer: string;     // 0.01 0G
+    estimatedPerInference: string; // ~0.002 0G
+  };
 }
 
 // ============================================
