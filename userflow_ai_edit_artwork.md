@@ -111,11 +111,11 @@ When parentTokenId > 0:
 
 ## Acceptance Criteria
 
-- [ ] User can edit an existing registered work from gallery
-- [ ] User can edit a just-minted work from certificate view
-- [ ] Image editing uses multipart/form-data (not JSON)
-- [ ] `processResponse()` called after editing inference
-- [ ] Edited image displays correctly (no broken internal URLs)
-- [ ] New NFT minted with parentTokenId linking to original
-- [ ] Dual certificate shows both records
-- [ ] Auto-transfer handles insufficient balance
+- [x] User can edit an existing registered work from gallery
+- [x] User can edit a just-minted work from certificate view
+- [x] Image editing uses multipart/form-data (not JSON)
+- [x] `processResponse()` called after editing inference
+- [x] Edited image displays correctly (no broken internal URLs)
+- [x] New NFT minted with parentTokenId linking to original
+- [x] Dual certificate shows both records
+- [x] Auto-transfer handles insufficient balance

@@ -9,7 +9,7 @@
 ## Preconditions
 
 - User has the image to verify (original or copy)
-- ChainRightERC721 contract deployed on 0G Testnet (v2 with `sequenceNumber` field)
+- ChainRightERC721 contract deployed on 0G Testnet (v3 with `parentTokenId` and `merkleRootOriginal` fields)
 
 ## Flow
 
@@ -150,35 +150,37 @@ When expanded:
 
 ## Acceptance Criteria
 
-- [ ] User can upload any image
-- [ ] System computes the Merkle Root locally using 0G SDK
-- [ ] `ZgFile` is closed correctly in a `finally` block
-- [ ] System queries `getProvenance()` on ChainRightERC721 v2 on 0G Chain
-- [ ] 5-step analysis shows live on-chain data (file size, root hash, RPC URL, chain ID, block number, contract address)
-- [ ] When result appears, steps collapse into an accordion ("Show analysis process ▼")
-- [ ] If verified: shows full provenance data (creator, model, prompt, ZK Res Key, sequence number, timestamp)
-- [ ] If verified: shows "View on StorageScan" link and "Download Certificate PDF" button
-- [ ] If not verified: shows "No Record Found" with clear explanation
-- [ ] Wow Moment: modifying 1 byte changes the hash completely
-- [ ] Wow Moment: split-screen comparison with scan line animation
-- [ ] Wow Moment: character-by-character hash diff (green = match, red = different)
-- [ ] Wow Moment: cryptographic similarity counter animates to 0%
-- [ ] Manual verification: paste Merkle Root and get instant result
+- [x] User can upload any image
+- [x] System computes the Merkle Root locally using 0G SDK
+- [x] `ZgFile` is closed correctly in a `finally` block
+- [x] System queries `getProvenance()` on ChainRightERC721 v3 on 0G Chain
+- [x] 5-step analysis shows live on-chain data (file size, root hash, RPC URL, chain ID, block number, contract address)
+- [x] When result appears, steps collapse into an accordion ("Show analysis process ▼")
+- [x] If verified: shows full provenance data (creator, model, prompt, ZK Res Key, sequence number, timestamp)
+- [x] If verified: shows "View on StorageScan" link and "Download Certificate PDF" button
+- [x] If not verified: shows "No Record Found" with clear explanation
+- [x] Wow Moment: modifying 1 byte changes the hash completely
+- [x] Wow Moment: split-screen comparison with scan line animation
+- [x] Wow Moment: character-by-character hash diff (green = match, red = different)
+- [x] Wow Moment: cryptographic similarity counter animates to 0%
+- [x] Manual verification: paste Merkle Root and get instant result
 
-## On-Chain Data (ChainRightERC721 v2)
+## On-Chain Data (ChainRightERC721 v3)
 
 For each minted NFT, the contract stores:
 
 ```solidity
 struct ProvenanceRecord {
-    bytes32 merkleRoot;        // Unique hash of the image in 0G Storage
-    string zkResKey;           // Unique ID of the inference in 0G Compute
-    string prompt;             // Exact prompt used
-    string model;              // AI model (e.g. "Flux Turbo")
-    string sequenceNumber;     // txSeq from 0G Storage — links to storagescan-galileo
-    uint256 timestamp;         // Block timestamp when minted
-    address creator;           // Original creator's wallet
-    bool exists;               // Existence flag
+    bytes32 merkleRoot;            // Unique hash of the image in 0G Storage
+    bytes32 merkleRootOriginal;    // Parent work's Merkle Root (0 if original)
+    string zkResKey;               // Unique ID of the inference in 0G Compute
+    string prompt;                 // Prompt or edit instruction
+    string model;                  // "flux-turbo" / "qwen-image-edit-2511" / "none"
+    string sequenceNumber;         // txSeq from 0G Storage
+    uint256 parentTokenId;         // Links to original NFT (0 if original)
+    uint256 timestamp;             // Block timestamp
+    address creator;               // Original creator's wallet
+    bool exists;                   // Existence flag
 }
 
 // Mapping: merkleRoot => ProvenanceRecord
@@ -190,6 +192,9 @@ mapping(uint256 => bytes32) public tokenToRoot;
 // Reverse lookup: creator => [merkleRoots]
 mapping(address => bytes32[]) public creatorToRoots;
 ```
+
+> **v3 adds**: `merkleRootOriginal` and `parentTokenId` for AI edit parent-child provenance chains.
+> The verification page shows a parent chain accordion when `parentTokenId > 0`.
 
 ## Why This Works
 

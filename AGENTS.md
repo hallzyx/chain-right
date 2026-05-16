@@ -13,8 +13,12 @@
 |---|---|
 | `product.md` | ✅ complete |
 | `stack.md` | ✅ complete |
-| `userflow_generar_mintear.md` | ✅ complete |
-| `userflow_verificar.md` | ✅ complete |
+| `spec.md` | ✅ complete |
+| `ARCHITECTURE.md` | ✅ complete |
+| `userflow_generate_and_Mint_artwork.md` | ✅ complete |
+| `userflow_ai_edit_artwork.md` | ✅ complete |
+| `userflow_verify_artwork.md` | ✅ complete |
+| `userflow_agent_verify.md` | ✅ complete |
 
 ## Loading Rules
 
@@ -26,27 +30,27 @@
 
 ## Demo Flow Summary
 
-El jurado verá:
-1. Usuario ingresa un prompt y genera una imagen via 0G Compute (Flux Turbo)
-2. Sistema muestra ZG-Res-Key + metadata de la inferencia
-3. Usuario guarda la imagen en 0G Storage → obtiene Merkle Root
-4. Usuario conecta MetaMask y mintea un NFT en 0G Chain
-5. Wow moment: Usuario modifica UN PÍXEL, intenta verificar → falla
-6. **Agente de Telegram**: Usuario envía imagen al bot → el agente autónomamente verifica con DeepSeek + 0G Chain
-7. Conclusión: ChainRight le da procedencia irrefutable a obras de IA + agente autónomo con memoria persistente
+The judges will see:
+
+1. **Generate**: User enters a prompt → 0G Compute (Flux Turbo) generates image with ZG-Res-Key proof
+2. **Register Original**: User uploads an image (no AI) → stores on 0G Storage → mints NFT with provenance
+3. **AI Edit**: User edits a registered work via 0G Compute (qwen-image-edit-2511) → mints a second NFT linked to the original via parentTokenId
+4. **Verify**: Upload any image → 5-step on-chain analysis → ✅ Authentic or ❌ Not Found
+5. **Wow Moment**: Change 1 pixel → the entire Merkle Root changes → cryptographic impossibility proven visually
+6. **Telegram Agent**: User sends image + "verify this" → agent autonomously verifies on 0G Chain using 0G Compute NLP (qwen-2.5-7b-instruct), returns full provenance + PDF certificate
+7. **Conclusion**: ChainRight provides irrefutable provenance to AI artworks + autonomous agent with persistent 0G Storage memory
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS v4 (Black & Amber design)
 - **Blockchain**: 0G Chain (EVM-compatible, evmVersion: "cancun")
 - **Storage**: 0G Storage (@0gfoundation/0g-ts-sdk 1.2.8) — KV/Log for agent persistent memory
-- **Compute**: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6)
-- **Fallback Compute**: OpenAI Images API (solo tras consentimiento explícito)
+- **Compute**: 0G Compute Network (@0glabs/0g-serving-broker 0.6.6) — Flux Turbo (text-to-image), qwen-image-edit-2511 (AI editing), qwen-2.5-7b-instruct (agent NLP)
 - **Wallet UX**: RainbowKit + Wagmi + Viem (wallet gate obligatorio)
 - **Contracts**: Solidity ^0.8.24 + Hardhat
 - **Wallet**: ethers v6.13.1 + MetaMask
 - **Deploy**: Vercel (frontend) + 0G Testnet (contracts)
-- **Agent**: grammY + DeepSeek Function Calling + tsx
+- **Agent**: grammY + 0G Compute NLP (qwen-2.5-7b) + tsx
 
 ## 0G Network for Demo
 
@@ -59,10 +63,11 @@ El jurado verá:
 
 ## Current Focus
 
-1. **Web App**: Generate → Store → Mint → Verify con Wow Moment
-2. **Design System**: Black & Amber Edition (extraído de Stitch)
-3. **Autonomous Agent**: Telegram bot con DeepSeek Function Calling
-4. **Agent Memory**: 0G Storage KV/Log para persistencia descentralizada
+1. **Web App**: Generate, Register Original, AI Edit → Store → Mint → Verify with Wow Moment
+2. **Design System**: Black & Amber Edition (extracted from Stitch)
+3. **Autonomous Agent**: Telegram bot with 0G Compute NLP (qwen-2.5-7b function calling)
+4. **Agent Memory**: 0G Storage KV/Log for decentralized persistence
+5. **Architecture**: 3-layer fund flow (Wallet → Ledger → Provider sub-account)
 
 ## MVP Persistence
 
@@ -95,9 +100,9 @@ On shutdown (SIGINT): final syncTo0G()
 ### Agent Flow
 
 ```
-User message + image → agentThink() [DeepSeek] → tool_calls
+User message + image → agentThink() [0G Compute qwen-2.5-7b] → tool_calls
 → executeTool() → verifyImageData() → Merkle + Chain
-→ agentRespond() [DeepSeek] → natural language response + PDF
+→ agentRespond() [0G Compute qwen-2.5-7b] → natural language response + PDF
 → maybeSyncTo0G() [every 5 verifications]
 ```
 
@@ -118,6 +123,8 @@ User message + image → agentThink() [DeepSeek] → tool_calls
 | `storage/download-file` | 0G Storage | Download for verification |
 | `storage/merkle-verification` | 0G Storage | Verify file integrity |
 | `compute/text-to-image` | 0G Compute | Flux Turbo image generation |
+| `compute/image-editing` | 0G Compute | qwen-image-edit-2511 AI editing |
+| `compute/chatbot` | 0G Compute | qwen-2.5-7b agent NLP |
 | `compute/provider-discovery` | 0G Compute | Find available providers |
 | `compute/account-management` | 0G Compute | Deposit, transfer, check balance |
 | `chain/deploy-contract` | 0G Chain | Deploy ChainRightERC721 |
@@ -125,7 +132,7 @@ User message + image → agentThink() [DeepSeek] → tool_calls
 | `cross-layer/storage-plus-chain` | Cross-layer | Register merkle root on-chain |
 | `cross-layer/compute-plus-storage` | Cross-layer | Generate + store pipeline |
 | `agent/verify` | Agent | Image verification via Merkle + Chain |
-| `agent/nlp` | Agent | DeepSeek Function Calling |
+| `agent/nlp` | Agent | 0G Compute NLP (qwen-2.5-7b Function Calling) |
 | `agent/memory/kv` | Agent | Persistent state |
 | `agent/memory/0g-kv` | Agent | 0G Storage KV/Log sync |
 
@@ -135,7 +142,7 @@ User message + image → agentThink() [DeepSeek] → tool_calls
 |---|---|
 | `agent/bot.ts` | Entrypoint — Function Calling loop |
 | `agent/handlers/verify.ts` | Image verification (Merkle + Chain + PDF) |
-| `agent/utils/nlp.ts` | DeepSeek Function Calling integration |
+| `agent/utils/nlp.ts` | 0G Compute NLP integration (qwen-2.5-7b) |
 | `agent/utils/pdf.ts` | Certificate PDF generation in Node.js |
 | `agent/utils/tools.ts` | Agent tool definitions (verify_image, show_help, show_stats, chat_reply) |
 | `agent/memory/0g-kv.ts` | 0G Storage KV/Log wrapper (uploadBuffer/downloadFile) |
@@ -143,14 +150,6 @@ User message + image → agentThink() [DeepSeek] → tool_calls
 | `agent/memory/log.ts` | Local log history (JSON file) |
 
 ## CRITICAL 0G RULES — THESE BREAK THINGS IF IGNORED
-
-## Fallback Rule (No Providers)
-
-- Si no hay providers de `text-to-image` en 0G:
-  1. Mostrar modal al usuario explicando el fallback.
-  2. Ejecutar OpenAI fallback SOLO si el usuario acepta.
-  3. Nunca ejecutar fallback automáticamente sin consentimiento.
-  4. Usar perfil económico para demo (`gpt-image-1-mini`, `size: auto`, calidad baja, jpeg comprimido).
 
 ### Compute Rules (processResponse)
 
@@ -236,6 +235,8 @@ From `.0g-skills/AGENTS.md`:
 | When you say... | What auto-activates |
 |---|---|
 | "generate an image" | provider-discovery → account-management → text-to-image |
+| "edit an image" | provider-discovery → account-management → image-editing |
+| "register artwork" | storage-plus-chain → interact-contract |
 | "upload a file" | upload-file → merkle-verification |
 | "deploy the contract" | deploy-contract |
 | "mint an NFT" | interact-contract + storage-plus-chain |
@@ -268,9 +269,3 @@ async function mintWithProvenance(...) { ... }
 ```
 
 No need for @param/@returns unless genuinely complex.
-
-## Next Recommended Action
-
-1. **Scaffoldear el proyecto Next.js con la estructura definida en stack.md**
-2. **Escribir el contrato ChainRightERC721.sol**
-3. **Configurar Hardhat con evmVersion: "cancun"**

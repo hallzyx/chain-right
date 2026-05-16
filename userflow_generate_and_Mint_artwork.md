@@ -121,13 +121,13 @@ If provider returns "insufficient balance":
 
 ## Acceptance Criteria
 
-- [ ] User can generate image via 0G Compute Flux Turbo
-- [ ] User can register original artwork (no AI)
-- [ ] `processResponse()` called after every inference
-- [ ] ChatID extracted from `ZG-Res-Key` header FIRST
-- [ ] Image stored on 0G Storage with valid Merkle Root
-- [ ] `ZgFile` properly closed in `finally` block
-- [ ] NFT minted via ChainRightERC721 v3 contract
-- [ ] Certificate shows all explorer links
-- [ ] ethers v6 only
-- [ ] `evmVersion: "cancun"`
+- [x] User can generate image via 0G Compute Flux Turbo
+- [x] User can register original artwork (no AI)
+- [x] `processResponse()` called after every inference
+- [x] ChatID extracted from `ZG-Res-Key` header FIRST
+- [x] Image stored on 0G Storage with valid Merkle Root
+- [x] `ZgFile` properly closed in `finally` block
+- [x] NFT minted via ChainRightERC721 v3 contract
+- [x] Certificate shows all explorer links
+- [x] ethers v6 only
+- [x] `evmVersion: "cancun"`

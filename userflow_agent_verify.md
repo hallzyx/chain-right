@@ -142,10 +142,10 @@ Agent logs show per-interaction:
 
 ## Acceptance Criteria
 
-- [ ] Agent uses 0G Compute for ALL NLP (no DeepSeek)
-- [ ] `processResponse()` called after every inference
-- [ ] ZG-Res-Key captured per interaction
-- [ ] Auto-deposit works on insufficient balance
-- [ ] Keyword fallback works when 0G Compute unavailable
-- [ ] PDF certificate generated and sent
-- [ ] Agent memory synced to 0G Storage
+- [x] Agent uses 0G Compute for ALL NLP (no DeepSeek)
+- [x] `processResponse()` called after every inference
+- [x] ZG-Res-Key captured per interaction
+- [x] Auto-deposit works on insufficient balance
+- [x] Keyword fallback works when 0G Compute unavailable
+- [x] PDF certificate generated and sent
+- [x] Agent memory synced to 0G Storage
