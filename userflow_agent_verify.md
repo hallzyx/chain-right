@@ -3,58 +3,54 @@
 ## Actors
 
 - Verifier user (any Telegram user)
-- DeepSeek API (NLP + Function Calling)
-- 0G Storage Network (Merkle + KV/Log)
-- 0G Chain (ChainRightERC721 contract + events)
+- 0G Compute Network (qwen/qwen-2.5-7b-instruct for NLP + Function Calling)
+- 0G Storage Network (Merkle + KV/Log agent memory)
+- 0G Chain (ChainRightERC721 v3 contract)
 
 ## Preconditions
 
 - Telegram bot created via @BotFather
-- `TELEGRAM_BOT_TOKEN` and `DEEPSEEK_API_KEY` set in `.env`
-- ChainRightERC721 contract deployed on 0G Testnet
-- User has the image to verify
+- `TELEGRAM_BOT_TOKEN` set in `.env`
+- 0G Compute chatbot provider funded (min. 1.0 0G reserve in sub-account)
+  - Provider: `0xa48f01287233509FD694a22Bf840225062E67836`
+- ChainRightERC721 v3 deployed on 0G Testnet
 
 ## Flow
 
 ### Step 1: User sends image + natural language
 
-User sends a photo or document to the bot with a message like:
-- "verify this image"
-- "is this artwork authentic?"
-- "check the provenance of this"
-- "hi, can you validate this?"
+User sends a photo or document to the bot with a message.
 
 **System response — Agent Thinking:**
 1. Bot receives message with photo/document + caption
-2. Calls `agentThink()` → sends message + available tools to DeepSeek
-3. DeepSeek analyzes intent and context:
-   - User mentioned "verify" + has image attached → tool: `verify_image`
-   - User asked "what can you do" → tool: `show_help`
-   - User asked "my stats" → tool: `show_stats`
-   - User said "hello" → tool: `chat_reply`
+2. Calls `agentThink()` → sends messages + tool definitions to 0G Compute
+3. `chatCompletion()` handles:
+   - Provider discovery (`chatbot` service type)
+   - Auth header generation (signed with JSON body)
+   - Auto-deposit: if provider says "insufficient balance", deposits 0.1 0G from on-chain wallet to ledger and retries
+   - `processResponse()` for fee settlement
+4. 0G Compute (qwen-2.5-7b-instruct) decides which tool to call:
+   - "verify" + image attached → `verify_image`
+   - "what can you do" → `show_help`
+   - "stats" → `show_stats`
+   - "hello" → `chat_reply`
 
 ### Step 2: Tool Execution — verify_image
 
-If DeepSeek calls `verify_image`:
-
-1. System downloads image from Telegram (`downloadTelegramImage` or `downloadTelegramDocument`)
+1. Downloads image from Telegram
 2. Computes Merkle Root via `computeMerkleRootFromBuffer()`
 3. Queries 0G Chain contract via `verifyProvenance()`
-4. Queries contract events via `getTokenIdAndTxByMerkleRoot()` for tokenId and txHash
+4. Gets tokenId and txHash from contract events
 5. Builds chainScanUrl, nftUrl, storageScanUrl
 6. Generates PDF certificate via `generatePdfBuffer()`
 7. Records verification in memory (KV + Log)
 
-**System response — Tool Result:**
-The verification data is formatted and sent back to DeepSeek with explicit formatting instructions.
+### Step 3: 0G Compute generates final response
 
-### Step 3: DeepSeek generates final response
-
-DeepSeek receives the tool result and generates a natural language response including ALL provenance data:
+The verification data is sent back via `agentRespond()` to 0G Compute, which formats a natural response:
 
 ```
 ✅ AUTHENTICITY CONFIRMED
-
 This artwork has an immutable record on 0G Chain.
 
 👤 Creator:     0x6F21...ec74
@@ -70,98 +66,86 @@ This artwork has an immutable record on 0G Chain.
 ⛓️ View Mint Tx on ChainScan
 https://chainscan-galileo.0g.ai/tx/0x305a...
 
-🎨 View NFT on ChainScan
-https://chainscan-galileo.0g.ai/nft/0xE76B.../1
-
 ☁️ View on StorageScan
 https://storagescan-galileo.0g.ai/submission/68406
 ```
 
 ### Step 4: PDF Delivery
 
-If verification is successful, the agent sends the Certificate of Authenticity as a PDF document:
-- Generated via `jspdf` in Node.js (no browser needed)
-- Sent as Telegram document attachment
-- Contains: Merkle Root, creator, model, prompt, sequence, timestamp, network info
+If verification successful: sends Certificate PDF as Telegram document attachment.
 
-### Step 5: Memory Sync
+### Step 5: Memory Sync (0G Storage)
 
-After each verification:
-1. Local state saved to `agent-state.json` (per-user stats, global counters)
-2. Verification logged to `agent-log.json` (audit trail)
-3. Every 5 verifications: state synced to 0G Storage via `syncTo0G()`
-4. On shutdown (SIGINT): final sync to 0G Storage
-
-### Memory Restore on Restart
-
-On agent startup:
-1. Read `.0g-kv-root` for stored Merkle Roots
-2. Attempt `downloadFile(merkleRoot)` from 0G Storage
-3. If successful, restore `agent-state.json` and `agent-log.json`
-4. If not found, start fresh with local files
+- Local state saved to `agent-state.json`, `agent-log.json`
+- Every 5 verifications: synced to 0G Storage via `syncTo0G()`
+- On Ctrl+C: final sync before exit
+- On restart: download from 0G Storage and restore state
 
 ---
 
-## Alternative Flows
+## NLP Architecture (0G Compute)
 
-### No image attached
-
-User says "verify" but doesn't send an image.
-
-**System response:**
 ```
-📸 Send me the image you want to verify and I'll check its on-chain provenance!
-```
-
-### Image sent as photo (compressed)
-
-Telegram compresses photos. The Merkle Root will differ from the original.
-
-**System response:**
-The verification completes but includes a warning:
-```
-⚠️ Sent as photo — Telegram compresses images. For exact verification, send as a document file instead.
+agent/utils/nlp.ts → chatCompletion() in lib/compute.ts
+                   → 0G Compute Broker
+                   → discoverProviders("chatbot")
+                   → getServiceMetadata(providerAddress)
+                   → getRequestHeaders(providerAddress, JSON.stringify(body))
+                   → POST ${endpoint}/chat/completions
+                   → processResponse(providerAddress, chatID, usageData)
 ```
 
-### Manual Merkle Root verification (future)
-
-User pastes a Merkle Root directly. Not yet implemented in agent (available in web app).
+- **Model**: `qwen/qwen-2.5-7b-instruct`
+- **Provider**: `0xa48f01287233509FD694a22Bf840225062E67836` (TEE-verified)
+- **Endpoint**: `https://compute-network-6.integratenetwork.work/v1/proxy/chat/completions`
+- **Tool calling**: OpenAI-compatible format with `tools` array and `tool_choice: "auto"`
+- **Cost**: ~0.0000001 0G per query
 
 ---
 
-## Tool Decision Matrix
+## Fallback (When 0G Compute Unavailable)
 
-| User says... | Image? | DeepSeek chooses tool... | Result |
-|---|---|---|---|
-| "verify this" | ✅ | `verify_image(has_image=true)` | Provenance check |
-| "is this real" | ✅ | `verify_image(has_image=true)` | Provenance check |
-| "check authenticity" | ❌ | `verify_image(has_image=false)` | "Send me an image" |
-| "what can you do" | ❌ | `show_help(topic=general)` | Help message |
-| "my stats" | ❌ | `show_stats()` | Stats display |
-| "hello" | ❌ | `chat_reply()` | Greeting |
-| "how are you" | ❌ | `chat_reply()` | Friendly reply |
+If `chatCompletion()` fails:
+- Uses keyword matching in `fallbackAgent()` — **no DeepSeek, no external APIs**
+- Keywords: "verify", "check", "validate" → verify_image; "help" → show_help; "stats" → show_stats; default → chat_reply
+- `chat_reply` in fallback returns a raw instruction string (not natural language)
 
 ---
 
-## Fallback (No DeepSeek API)
+## Auto-Funding
 
-If `DEEPSEEK_API_KEY` is not configured:
-- Uses keyword matching fallback in `agent/utils/nlp.ts`
-- Same tool execution, but deterministic instead of LLM-driven
-- Keywords: "verify", "check", "validate" → verify_image; "help" → show_help; "stats" → show_stats
+```
+Request → Provider: "insufficient balance"
+    ↓
+Deposit 0.1 0G from on-chain wallet → compute ledger
+    ↓
+Retry request (fresh auth headers)
+    ↓
+Success → processResponse()
+```
+
+If on-chain wallet has no ETH for gas: falls back to keyword matching.
 
 ---
 
-## Memory Architecture
+## Logging
 
+Agent logs show per-interaction:
 ```
-agent-state.json  ←→  0G Storage (uploadBuffer)
-agent-log.json    ←→  0G Storage (uploadBuffer)
-.0g-kv-root       ←    Merkle Roots for retrieval
+✅ 0G Compute decided tool: verify_image
+   🆔 ChatID: d87c606f...        ← ZG-Res-Key from header
+   🏛️ Provider: 0xa48f0128...     ← provider address
+   🤖 Model: qwen/qwen-2.5-7b... ← model used
+```
 
-Sync strategy:
-- On verify: local save immediately
-- Every 5 verifications: uploadBuffer() → 0G Storage
-- On SIGINT: final syncTo0G()
-- On startup: downloadFile() → restore if available
-```
+---
+
+## Acceptance Criteria
+
+- [ ] Agent uses 0G Compute for ALL NLP (no DeepSeek)
+- [ ] `processResponse()` called after every inference
+- [ ] ZG-Res-Key captured per interaction
+- [ ] Auto-deposit works on insufficient balance
+- [ ] Keyword fallback works when 0G Compute unavailable
+- [ ] PDF certificate generated and sent
+- [ ] Agent memory synced to 0G Storage
