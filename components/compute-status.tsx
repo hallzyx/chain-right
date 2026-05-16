@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2, AlertCircle, Cpu, Wallet, Server, ShieldCheck, ArrowRight, RefreshCw, Coins, ArrowDownRight, Info, PlusCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Cpu, ChevronDown, PlusCircle, RefreshCw, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * Panel de estado del sistema 0G Compute Network.
- * Muestra: cuenta, balances, providers, costos y flujo de fondos.
- * Diseñado para visibilidad total del flujo 0G (hackathon demo).
+ * Acordeón colapsado por defecto. Muestra solo lo esencial al expandir.
  */
 export function ComputeStatus({ compact = false }: { compact?: boolean }) {
   const [status, setStatus] = useState<ComputeStatusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [depositing, setDepositing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   async function fetchStatus() {
     setLoading(true);
@@ -61,7 +61,7 @@ export function ComputeStatus({ compact = false }: { compact?: boolean }) {
 
   if (loading) {
     return (
-      <div className="bg-[#141414] border border-white/5 p-6 flex items-center gap-3">
+      <div className="bg-[#141414] border border-white/5 px-4 py-3 flex items-center gap-3">
         <Loader2 className="w-4 h-4 text-[#f59e0b] animate-spin" />
         <span className="text-sm text-[#888]">Checking 0G Compute status...</span>
       </div>
@@ -70,58 +70,34 @@ export function ComputeStatus({ compact = false }: { compact?: boolean }) {
 
   if (error) {
     return (
-      <div className="bg-[#93000a]/10 border border-[#ffb4ab]/20 p-4">
-        <p className="text-[#ffb4ab] text-sm">Error loading 0G Compute status: {error}</p>
+      <div className="bg-[#141414] border border-white/5 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-[#ffb4ab]" />
+          <span className="text-xs text-[#ffb4ab]">Compute status unavailable</span>
+        </div>
+        <button onClick={fetchStatus} className="p-1 text-[#888] hover:text-[#f59e0b] transition-colors" title="Retry">
+          <RefreshCw className="w-3 h-3" />
+        </button>
       </div>
     );
   }
 
   if (!status) return null;
 
-  const { accountExists, walletBalance, computeBalance, computeTotalBalance, providers, costs } = status;
+  const { accountExists, computeBalance, computeTotalBalance, providers, costs } = status;
   const computeTotalNum = parseFloat(computeTotalBalance);
-  const needsDeposit = accountExists && computeTotalNum < 1.0;
+  const needsDeposit = accountExists && computeTotalNum < 0.1;
+  const allReady = accountExists && computeTotalNum >= 0.1 && providers.textToImage.available && providers.imageEditing.available;
 
-  // Steps for the flow visualization
-  const steps = [
-    {
-      label: "Wallet On-Chain",
-      detail: `${walletBalance} 0G`,
-      done: true,
-      icon: Wallet,
-    },
-    {
-      label: "Compute Account",
-      detail: accountExists ? `Total: ${computeTotalBalance} 0G · Available: ${computeBalance} 0G` : "Not created yet",
-      done: accountExists,
-      icon: Cpu,
-      warning: needsDeposit,
-    },
-    {
-      label: "Text-to-Image Provider",
-      detail: providers.textToImage.available ? providers.textToImage.model : "No providers",
-      done: providers.textToImage.available && accountExists,
-      icon: Server,
-      tee: providers.textToImage.teeVerified,
-    },
-    {
-      label: "Image Editing Provider",
-      detail: providers.imageEditing.available ? providers.imageEditing.model : "No providers",
-      done: providers.imageEditing.available && accountExists,
-      icon: Server,
-      tee: providers.imageEditing.teeVerified,
-    },
-    {
-      label: "Chatbot (Agent)",
-      detail: providers.chatbot.available ? providers.chatbot.model : "No providers",
-      done: providers.chatbot.available && accountExists,
-      icon: Server,
-      tee: providers.chatbot.teeVerified,
-    },
-  ];
+  // Active model based on context (prefer image-editing if available, fallback to text-to-image)
+  const activeModel = providers.imageEditing.available
+    ? providers.imageEditing.model
+    : providers.textToImage.available
+      ? providers.textToImage.model
+      : "";
 
+  // Compact mode (used in /my-works)
   if (compact) {
-    const allReady = accountExists && computeTotalNum >= 1.0 && providers.textToImage.available && providers.imageEditing.available;
     return (
       <div className={cn(
         "flex items-center gap-3 px-4 py-2 border text-xs",
@@ -131,15 +107,15 @@ export function ComputeStatus({ compact = false }: { compact?: boolean }) {
             ? "bg-[#93000a]/10 border-[#ffb4ab]/20 text-[#ffb4ab]"
             : "bg-[#141414] border-white/5 text-[#888]"
       )}>
-        {allReady ? <CheckCircle2 className="w-3 h-3" /> : needsDeposit ? <AlertCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+        {allReady ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
         <span>
           {allReady
-            ? `0G Compute Ready · ${computeTotalBalance} 0G · ${providers.textToImage.model} + ${providers.imageEditing.model}`
+            ? `0G Compute Ready · ${computeTotalBalance} 0G`
             : needsDeposit
-              ? `Low compute balance: ${computeTotalBalance} 0G (need ≥1.0 0G for providers)`
+              ? `Low balance: ${computeTotalBalance} 0G`
               : !accountExists
-                ? "0G Compute: Account not created"
-                : "0G Compute: Some providers unavailable"}
+                ? "Compute: Not set up"
+                : "Compute: Providers unavailable"}
         </span>
         <button
           onClick={fetchStatus}
@@ -152,240 +128,149 @@ export function ComputeStatus({ compact = false }: { compact?: boolean }) {
     );
   }
 
-  // Full version: detailed flow panel with cost breakdown
+  // Full version: accordion with simplified content
   return (
     <div className="bg-[#141414] border border-white/5 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+      {/* Accordion Header — always visible */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
+      >
         <div className="flex items-center gap-3">
-          <Cpu className="w-5 h-5 text-[#f59e0b]" strokeWidth={1.5} />
-          <h3 className="font-[family-name:var(--font-newsreader)] text-lg text-[#f5f5f5]">
-            0G Compute Network
-          </h3>
+          <div className={cn(
+            "w-6 h-6 rounded-full flex items-center justify-center border",
+            allReady
+              ? "bg-[#f59e0b]/10 border-[#f59e0b]/40 text-[#f59e0b]"
+              : needsDeposit
+                ? "bg-[#93000a]/20 border-[#ffb4ab]/40 text-[#ffb4ab]"
+                : "bg-[#1a1a1a] border-[#333] text-[#555]"
+          )}>
+            {allReady ? <CheckCircle2 className="w-3.5 h-3.5" /> : needsDeposit ? <AlertCircle className="w-3.5 h-3.5" /> : <Cpu className="w-3.5 h-3.5" />}
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-medium text-[#f5f5f5]">0G Compute Network</p>
+            <p className="text-[11px] text-[#555]">
+              {accountExists
+                ? `${computeTotalBalance} 0G · ${activeModel || "No model"}`
+                : "Account not created"}
+            </p>
+          </div>
         </div>
-        <button
-          onClick={fetchStatus}
-          className="p-2 text-[#888] hover:text-[#f59e0b] transition-colors"
-          title="Refresh status"
-        >
-          <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-        </button>
-      </div>
+        <ChevronDown className={cn(
+          "w-4 h-4 text-[#555] transition-transform duration-200",
+          open && "rotate-180"
+        )} />
+      </button>
 
-      {/* Flow Steps */}
-      <div className="p-6 space-y-0">
-        {steps.map((step, i) => {
-          const Icon = step.icon;
-          const isLast = i === steps.length - 1;
+      {/* Accordion Content — only when expanded */}
+      {open && (
+        <div className="border-t border-white/5">
+          {/* Status Pills */}
+          <div className="px-4 py-3 flex flex-wrap gap-2">
+            <span className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border",
+              providers.textToImage.available
+                ? "bg-[#f59e0b]/5 border-[#f59e0b]/20 text-[#f59e0b]"
+                : "bg-[#1a1a1a] border-white/5 text-[#555]"
+            )}>
+              {providers.textToImage.available ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+              Generate
+            </span>
+            <span className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border",
+              providers.imageEditing.available
+                ? "bg-[#f59e0b]/5 border-[#f59e0b]/20 text-[#f59e0b]"
+                : "bg-[#1a1a1a] border-white/5 text-[#555]"
+            )}>
+              {providers.imageEditing.available ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+              Edit
+            </span>
+            <span className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border",
+              providers.chatbot.available
+                ? "bg-[#f59e0b]/5 border-[#f59e0b]/20 text-[#f59e0b]"
+                : "bg-[#1a1a1a] border-white/5 text-[#555]"
+            )}>
+              {providers.chatbot.available ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+              Agent
+            </span>
+          </div>
 
-          return (
-            <div key={step.label} className="flex items-start gap-4">
-              {/* Connector line */}
-              <div className="flex flex-col items-center">
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center border-2",
-                  step.warning
-                    ? "bg-[#93000a]/20 border-[#ffb4ab] text-[#ffb4ab]"
-                    : step.done
-                      ? "bg-[#f59e0b]/10 border-[#f59e0b] text-[#f59e0b]"
-                      : "bg-[#1a1a1a] border-[#333] text-[#555]"
-                )}>
-                  {step.done ? <CheckCircle2 className="w-4 h-4" /> : step.warning ? <AlertCircle className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+          {/* Fund Management — only if account exists */}
+          {accountExists && (
+            <div className={cn(
+              "px-4 py-3 border-t border-white/5",
+              needsDeposit ? "bg-[#93000a]/5" : ""
+            )}>
+              {needsDeposit && (
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-3.5 h-3.5 text-[#ffb4ab]" />
+                  <span className="text-xs text-[#ffb4ab]">Low balance — deposit to use providers</span>
                 </div>
-                {!isLast && (
-                  <div className={cn(
-                    "w-[1px] h-8",
-                    step.done ? "bg-[#f59e0b]/30" : "bg-[#333]"
-                  )} />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={cn(
-                      "text-sm font-medium",
-                      step.warning ? "text-[#ffb4ab]" : step.done ? "text-[#f5f5f5]" : "text-[#888]"
-                    )}>
-                      {step.label}
-                    </p>
-                    <p className="text-xs text-[#555] mt-0.5 font-mono">{step.detail}</p>
-                    {step.warning && (
-                      <p className="text-[10px] text-[#ffb4ab] mt-1">
-                        Need ≥1.0 0G to use providers. Deposit more funds below.
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {"tee" in step && step.tee && (
-                      <span className="text-[10px] font-semibold uppercase tracking-widest text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-0.5 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3" />
-                        TEE
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Fund Management */}
-      {accountExists && (
-        <div className={cn(
-          "border-t px-6 py-5",
-          needsDeposit
-            ? "border-[#ffb4ab]/20 bg-[#93000a]/5"
-            : "border-white/5 bg-[#0a0a0a]/30"
-        )}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {needsDeposit ? (
-                <>
-                  <AlertCircle className="w-5 h-5 text-[#ffb4ab]" />
-                  <div>
-                    <p className="text-sm font-medium text-[#ffb4ab]">Low Compute Balance</p>
-                    <p className="text-xs text-[#ffb4ab]/70 mt-0.5">
-                      Total: {computeTotalBalance} 0G. Providers require ≥1.0 0G minimum.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Coins className="w-5 h-5 text-[#f59e0b]" />
-                  <div>
-                    <p className="text-sm font-medium text-[#f5f5f5]">Manage Compute Funds</p>
-                    <p className="text-xs text-[#555] mt-0.5">
-                      Total: {computeTotalBalance} 0G
-                    </p>
-                  </div>
-                </>
               )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleDepositAmount(0.1)}
-                disabled={depositing}
-                className={cn(
-                  "flex items-center gap-2 text-xs font-semibold uppercase tracking-widest border px-4 py-2 transition-all",
-                  depositing
-                    ? "border-[#555] text-[#555] cursor-not-allowed"
-                    : "border-[#f59e0b]/30 text-[#f59e0b] hover:bg-[#f59e0b]/10"
-                )}
-              >
-                {depositing ? (
-                  <>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDepositAmount(0.1)}
+                  disabled={depositing}
+                  className={cn(
+                    "flex items-center gap-1.5 text-[11px] font-medium border px-3 py-1.5 rounded transition-all",
+                    depositing
+                      ? "border-[#555] text-[#555] cursor-not-allowed"
+                      : "border-[#f59e0b]/30 text-[#f59e0b] hover:bg-[#f59e0b]/10"
+                  )}
+                >
+                  {depositing ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Depositing...
-                  </>
-                ) : (
-                  <>
+                  ) : (
                     <PlusCircle className="w-3 h-3" />
-                    Deposit 0.1 0G
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => handleDepositAmount(1.0)}
-                disabled={depositing}
-                className={cn(
-                  "flex items-center gap-2 text-xs font-semibold uppercase tracking-widest border px-4 py-2 transition-all",
-                  depositing
-                    ? "border-[#555] text-[#555] cursor-not-allowed"
-                    : needsDeposit
-                      ? "border-[#ffb4ab]/30 text-[#ffb4ab] hover:bg-[#ffb4ab]/10"
-                      : "border-white/10 text-[#888] hover:bg-white/5"
-                )}
-              >
-                {depositing ? (
-                  <>
+                  )}
+                  0.1 0G
+                </button>
+                <button
+                  onClick={() => handleDepositAmount(1.0)}
+                  disabled={depositing}
+                  className={cn(
+                    "flex items-center gap-1.5 text-[11px] font-medium border px-3 py-1.5 rounded transition-all",
+                    depositing
+                      ? "border-[#555] text-[#555] cursor-not-allowed"
+                      : needsDeposit
+                        ? "border-[#ffb4ab]/30 text-[#ffb4ab] hover:bg-[#ffb4ab]/10"
+                        : "border-white/10 text-[#888] hover:bg-white/5"
+                  )}
+                >
+                  {depositing ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Depositing...
-                  </>
-                ) : (
-                  <>
+                  ) : (
                     <PlusCircle className="w-3 h-3" />
-                    Deposit 1.0 0G
-                  </>
-                )}
-              </button>
+                  )}
+                  1.0 0G
+                </button>
+              </div>
             </div>
+          )}
+
+          {/* Cost info — minimal */}
+          {accountExists && (
+            <div className="px-4 py-3 border-t border-white/5 bg-[#0a0a0a]/30">
+              <div className="flex items-center justify-between text-[11px] text-[#555]">
+                <span>Est. cost per image</span>
+                <span className="font-mono text-[#888]">{costs.estimatedPerInference}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Refresh */}
+          <div className="px-4 py-2 border-t border-white/5 flex justify-end">
+            <button
+              onClick={fetchStatus}
+              className="flex items-center gap-1.5 text-[11px] text-[#555] hover:text-[#f59e0b] transition-colors"
+            >
+              <RefreshCw className={cn("w-3 h-3", loading && "animate-spin")} />
+              Refresh
+            </button>
           </div>
         </div>
       )}
-
-      {/* Cost Breakdown */}
-      {accountExists && (
-        <div className="border-t border-white/5 px-6 py-5 bg-[#0a0a0a]/30">
-          <div className="flex items-center gap-2 mb-4">
-            <Coins className="w-4 h-4 text-[#f59e0b]" strokeWidth={1.5} />
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-[#f59e0b]">
-              Cost Breakdown
-            </h4>
-          </div>
-
-          <div className="space-y-3">
-            {/* Flow of funds */}
-            <div className="flex items-center gap-3 text-xs">
-              <div className="flex items-center gap-2 bg-[#1a1a1a] px-3 py-2 rounded border border-white/5">
-                <Wallet className="w-3 h-3 text-[#888]" />
-                <span className="text-[#d8c3ad]">Wallet: {walletBalance} 0G</span>
-              </div>
-              <ArrowDownRight className="w-4 h-4 text-[#f59e0b]" />
-              <div className="flex items-center gap-2 bg-[#1a1a1a] px-3 py-2 rounded border border-[#f59e0b]/20">
-                <Cpu className="w-3 h-3 text-[#f59e0b]" />
-                <span className="text-[#f59e0b]">Compute: {computeBalance} 0G</span>
-              </div>
-              <ArrowDownRight className="w-4 h-4 text-[#f59e0b]" />
-              <div className="flex items-center gap-2 bg-[#1a1a1a] px-3 py-2 rounded border border-white/5">
-                <Server className="w-3 h-3 text-[#8fd5ff]" />
-                <span className="text-[#8fd5ff]">Provider: {costs.providerTransfer} 0G</span>
-              </div>
-            </div>
-
-            {/* Cost details */}
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className="bg-[#1a1a1a] border border-white/5 px-4 py-3 rounded">
-                <p className="text-[10px] uppercase tracking-widest text-[#555] mb-1">Account Setup</p>
-                <p className="text-sm text-[#f5f5f5] font-mono">{costs.accountMinDeposit} 0G</p>
-                <p className="text-[10px] text-[#555] mt-1">One-time deposit to create compute account</p>
-              </div>
-              <div className="bg-[#1a1a1a] border border-white/5 px-4 py-3 rounded">
-                <p className="text-[10px] uppercase tracking-widest text-[#555] mb-1">Per Provider Transfer</p>
-                <p className="text-sm text-[#f5f5f5] font-mono">{costs.providerTransfer} 0G</p>
-                <p className="text-[10px] text-[#555] mt-1">Transferred only when sub-account balance is low</p>
-              </div>
-              <div className="bg-[#1a1a1a] border border-white/5 px-4 py-3 rounded col-span-2">
-                <p className="text-[10px] uppercase tracking-widest text-[#555] mb-1">Est. Cost per Inference</p>
-                <p className="text-sm text-[#f5f5f5] font-mono">{costs.estimatedPerInference}</p>
-                <p className="text-[10px] text-[#555] mt-1">
-                  Each image generation or edit consumes from the provider&apos;s sub-account balance.
-                  Funds are auto-transferred ({costs.providerTransfer} 0G) only when the sub-account drops below 0.5 0G.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Footer: Architecture Summary */}
-      <div className="border-t border-white/5 px-6 py-4 bg-[#0a0a0a]/50">
-        <div className="flex items-center gap-2 mb-2">
-          <Info className="w-3 h-3 text-[#555]" />
-          <span className="text-[10px] text-[#555] uppercase tracking-widest">How it works</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-[#555] uppercase tracking-widest">
-          <span className="text-[#888]">Wallet</span>
-          <ArrowRight className="w-3 h-3 text-[#f59e0b]" />
-          <span className="text-[#888]">Compute Ledger</span>
-          <ArrowRight className="w-3 h-3 text-[#f59e0b]" />
-          <span className="text-[#888]">Provider Sub-Account</span>
-          <ArrowRight className="w-3 h-3 text-[#f59e0b]" />
-          <span className="text-[#8fd5ff]">TEE Inference</span>
-        </div>
-      </div>
     </div>
   );
 }
@@ -406,3 +291,4 @@ interface ComputeStatusData {
     estimatedPerInference: string;
   };
 }
+
