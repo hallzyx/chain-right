@@ -28,137 +28,94 @@ Today, anyone can copy your image, claim it as their own, and no one could prove
 
 ## The Solution
 
-ChainRight gives every AI-generated image a public, permanent, and verifiable provenance record stored entirely on-chain:
+ChainRight gives every AI-generated image a public, permanent, and verifiable provenance record stored entirely on 0G:
 
-1. **Generate** the image via 0G Compute (Flux Turbo, TEE-verified node)
-2. **Store** the image + metadata on 0G Storage → obtain a unique Merkle Root and a Sequence Number (txSeq)
-3. **Register** on 0G Chain by minting an NFT containing the full provenance record:
-   - **Merkle Root** — unique cryptographic fingerprint of the image
+1. **Generate** the image via 0G Compute (Flux Turbo, TEE-verified node) or **upload** an original artwork
+2. **Edit** with AI via 0G Compute (qwen-image-edit-2511) — creates a parent-child provenance chain
+3. **Store** the image on 0G Storage → Merkle Root + txSeq
+4. **Register** on 0G Chain by minting an NFT containing the full provenance record:
+   - **Merkle Root** — unique cryptographic fingerprint
    - **ZG-Res-Key** — unique inference ID from 0G Compute
    - **Prompt** — exact text that generated the image
-   - **Model** — AI model used (e.g., "Flux Turbo")
-   - **Sequence Number** (txSeq) — on-chain submission number from 0G Storage
-   - **Timestamp** — block timestamp when minted
-   - **Creator** — wallet address of the original creator
+   - **Model** — AI model used (e.g., "Flux Turbo", "qwen-image-edit-2511", or "none" for originals)
+   - **Sequence Number** (txSeq) — 0G Storage submission reference
+   - **parentTokenId** — links edited works to their original (0 for originals)
+   - **Timestamp** — block timestamp
+   - **Creator** — wallet address
 
-Anyone, at any time, can verify:
-- The image matches the registered Merkle Root (change one pixel → hash changes completely)
+Anyone can verify:
+- The image matches the registered Merkle Root
 - The inference exists and was executed on the registered date
 - The wallet that minted is the same that executed the inference
 
 ## The Demo Flow
 
-> This is what the judges will see. Optimized for the wow moment.
-
 ### Homepage
 
-User opens ChainRight and sees the landing page with two prominent options:
-- **"Create Artwork"** — generate an image, store it, and mint an NFT with provenance
+Two options:
+- **"Create Artwork"** — generate, register original, or AI edit an artwork
 - **"Verify Authenticity"** — upload any image and verify it against the on-chain registry
 
 ### Create Flow (Generate → Store → Mint)
 
-1. User chooses **"Create Artwork"**, writes a prompt: "cyberpunk book cover with a programmer looking at the horizon, retro-futuristic style"
-2. User clicks **"Generate Image"**
-   - System discovers text-to-image providers on 0G Compute
-   - Verifies balance, transfers funds if needed
-   - Executes inference with Flux Turbo
-   - Calls `processResponse()` for fee settlement
-3. System displays the generated image with provenance data:
-   - ZG-Res-Key (unique inference ID)
-   - Provider address
-   - Model: Flux Turbo
-   - Prompt used
-4. User clicks **"Save to 0G Storage"**
-   - System generates Merkle Tree
-   - Uploads to 0G Storage
-   - Captures the Sequence Number (txSeq) from the upload transaction
-   - Closes file handle in finally block
-5. User clicks **"Mint NFT"**
-   - System connects wallet (MetaMask)
-   - Writes to ChainRightERC721 contract with the full provenance record (including sequence number)
-   - Waits for block confirmation
-6. **Certificate of Authorship**: System displays a "Certificate of Authorship" card with:
-   - Token ID, contract address, thumbnail, prompt, model, creator address
-   - Three explorer buttons:
-     - **ChainScan Tx** — link to the mint transaction
-     - **NFT on ChainScan** — link to the NFT page
-     - **StorageScan** — link to the submission on 0G Storage explorer
-   - **Download Certificate PDF** — generates a legally presentable PDF document with all provenance data, including the Merkle Root, sequence number, and explorer links
+1. User writes a prompt and clicks **"Generate with AI"**
+2. System discovers text-to-image providers on 0G Compute, executes Flux Turbo inference
+3. Calls `processResponse()` for fee settlement
+4. Displays generated image with: ZG-Res-Key, provider address, model, prompt
+5. User clicks **"Save to 0G Storage"** → uploads image, gets Merkle Root + txSeq
+6. User clicks **"Mint NFT"** → writes to ChainRightERC721 v3 contract with full provenance
+7. **Certificate of Authorship** shows: Token ID, explorer links, PDF download
 
-### Verify Flow (Upload → Analyze → Result)
+### Register Original (Upload Only, No AI)
 
-1. User navigates to **"Verify Authenticity"**, uploads an image
-2. User clicks **"Verify Authenticity"**
-3. System performs a real-time 5-step analysis with live on-chain data visible during each step:
-   - **Step 1 — Read image file**: detects file size
-   - **Step 2 — Compute cryptographic fingerprint (Merkle Tree)**: builds Merkle Tree over file segments, displays the computed Merkle Root
-   - **Step 3 — Connect to 0G Chain**: displays the actual RPC URL, Chain ID (16602), and current block number
-   - **Step 4 — Query smart contract**: shows the contract address and the exact query selector (e.g., `getProvenance(0xabc123...)`)
-   - **Step 5 — Result**: found on-chain or not found
-4. Result screen shows:
-   - ✅ **Authenticity Confirmed** or ❌ **No Record Found**
-   - Expandable accordion with the full 5-step analysis trace
-   - The computed Merkle Root
-   - On-chain provenance data (if confirmed): Creator, Model, Prompt, ZK Resource Key, Sequence Number (txSeq), Timestamp
-   - Link to StorageScan (if sequence number present)
-   - **Download Certificate PDF** button (for confirmed results)
-5. **Wow Moment**: User clicks "View Wow Moment: Change ONE PIXEL"
-   - System modifies 1 byte of the original image data
-   - Displays a **split-screen visual comparison** of the original vs. modified image side by side (they look identical to the human eye)
-   - **Character-by-character hash diff**: a forensic display of the two Merkle Roots rendered side by side, with matching characters in green and differing characters in red
-   - **Similarity counter**: animates from 100% down to near 0%, visually demonstrating how a single pixel change destroys cryptographic similarity
-   - **Statistics panel**: shows Chars Compared, Matching Chars, and Cryptographic Similarity
-   - Conclusion message: "The hashes are COMPLETELY DIFFERENT. This is why it is cryptographically impossible to forge a work registered on ChainRight."
+1. User selects **"Register Artwork"**, uploads an image file
+2. Clicks **"Register on 0G Storage"** → Merkle Root
+3. Clicks **"Mint NFT"** → mints with `model="none"`, `zkResKey=""`, `prompt=""`
 
-### My Works
+### AI Edit (after mint)
 
-A personal gallery page accessible from the app shell that shows the user's created works:
-- Displays all works registered during the current session (MVP persistence via `db.json`)
-- Each entry shows the thumbnail, prompt, model, and status
-- Provides links to the explorer for each work
+After minting, the user can **"Edit with AI"**:
+1. Writes an edit prompt, system calls `qwen/qwen-image-edit-2511` (multipart/form-data)
+2. Captures ZG-Res-Key from response
+3. Stores edited image to 0G Storage, mints a **second NFT** linked to the original via `parentTokenId`
+4. Dual certificate shows both records side by side
+
+### Verify Flow
+
+1. User uploads an image on `/verify`
+2. System computes Merkle Root, queries 0G Chain contract
+3. Displays 5-step real-time analysis with live on-chain data
+4. **Wow Moment**: modify one pixel → hash changes completely → split-screen diff
+
+### Telegram Agent
+
+Autonomous bot that verifies images via natural language. Uses **0G Compute** (qwen-2.5-7b-instruct) for NLP and function calling — no external APIs, no DeepSeek. See [agent userflow](userflow_agent_verify.md).
 
 ## Features
 
-> Only what makes it to the demo. Everything else cut.
-
-| # | Feature | In demo? |
+| # | Feature | Status |
 |---|---|---|
-| 1 | Generate image with AI (Flux Turbo via 0G Compute) | ✅ yes |
-| 2 | Store image on 0G Storage with Merkle proof and Sequence Number (txSeq) | ✅ yes |
-| 3 | Mint NFT with full provenance record on-chain | ✅ yes |
-| 4 | Verify authenticity of any image (5-step real-time analysis with live on-chain data) | ✅ yes |
-| 5 | Visual hash diff comparison (Wow Moment) | ✅ yes |
-| 6 | Certificate of Authorship with 3 explorer buttons | ✅ yes |
-| 7 | PDF Certificate download for legal proof | ✅ yes |
-| 8 | "My Works" personal gallery page | ✅ yes |
-| 9 | Manual verification by pasting Merkle Root (from PDF certificate) | ✅ yes |
-| 10 | User profile / full account system | 🔴 cut |
-| 11 | Complete transaction history | 🔴 cut |
-| 12 | NFT transfers between users | 🔴 cut |
-| 13 | Royalties / secondary sales | 🔴 cut |
-| 14 | **Telegram Verification Agent** (autonomous AI agent) | ✅ yes |
-| 15 | Agent persistent memory via 0G Storage KV/Log | ✅ yes |
-| 16 | Natural language verification via DeepSeek Function Calling | ✅ yes |
+| 1 | Generate image with AI (Flux Turbo via 0G Compute) | ✅ |
+| 2 | Store image on 0G Storage with Merkle proof and txSeq | ✅ |
+| 3 | Mint NFT with full provenance record on-chain (v3) | ✅ |
+| 4 | Verify authenticity via Merkle Root (5-step analysis) | ✅ |
+| 5 | Visual hash diff comparison (Wow Moment) | ✅ |
+| 6 | Certificate of Authorship with explorer links | ✅ |
+| 7 | PDF Certificate download for legal proof | ✅ |
+| 8 | "My Works" personal gallery | ✅ |
+| 9 | Manual verification by pasting Merkle Root | ✅ |
+| 10 | Register Original (upload only, no AI) | ✅ |
+| 11 | AI Edit with parent-child provenance chain | ✅ |
+| 12 | **Telegram Verification Agent** (0G Compute NLP) | ✅ |
+| 13 | Agent persistent memory via 0G Storage KV/Log | ✅ |
 
-## Telegram Verification Agent
-
-ChainRight includes an autonomous AI agent accessible via Telegram. The agent uses **DeepSeek Function Calling** to autonomously decide which actions to take based on the user's natural language message.
-
-### Agent Capabilities
-
-- **Verify images**: Send any image (photo or document) and the agent computes the Merkle Root, queries 0G Chain, and responds with the full provenance data — Creator, AI Model, Prompt, ZK Res Key, Sequence, Timestamp, Merkle Root, and links to ChainScan, NFT viewer, and StorageScan.
-- **PDF Certificate**: The agent automatically generates and sends a downloadable Certificate of Authenticity PDF for verified images.
-- **Natural language**: The agent understands intent via DeepSeek — say "verify this", "check authenticity", "is this real?", "show my stats", "what can you do?", etc.
-- **Persistent memory**: Agent state (per-user stats, verification history, global counters) is synced to **0G Storage KV/Log** for decentralized persistence across restarts.
-
-### Agent Flow
+## Agent Architecture
 
 ```
 User sends image + "verify this" on Telegram
         │
         ▼
-DeepSeek analyzes intent → calls verify_image tool
+0G Compute (qwen-2.5-7b) analyzes intent → calls verify_image tool
         │
         ▼
 Agent downloads image, computes Merkle Root
@@ -167,79 +124,34 @@ Agent downloads image, computes Merkle Root
 Queries 0G Chain contract + events (tokenId, txHash)
         │
         ▼
-DeepSeek generates final response with ALL provenance details
+0G Compute generates final response with ALL provenance details
         │
         ▼
 Agent sends response + PDF certificate to user
 ```
 
-### Agent Memory Architecture
+### NLP
 
-```
-agent-state.json ←→ 0G Storage KV (uploadBuffer/downloadFile)
-agent-log.json    ←→ 0G Storage Log (append-only, periodic sync)
-.0g-kv-root       ←  Merkle Roots for retrieval on restart
-```
-
-- On startup: attempts to load previous state from 0G Storage
-- On verification: saves locally, syncs to 0G every 5 operations
-- On shutdown (SIGINT): performs final sync to 0G Storage
-
-### NLP Architecture
-
-The agent uses **DeepSeek chat API** with **Function Calling** to decide which tool to invoke:
+The agent uses **0G Compute** `qwen/qwen-2.5-7b-instruct` with OpenAI-compatible tool calling:
 - `verify_image` — verify on-chain provenance
-- `show_help` — display help information
-- `show_stats` — show user verification statistics
+- `show_help` — display help
+- `show_stats` — show user stats
 - `chat_reply` — general conversation
 
-The LLM receives the user's message + image context + available tools, and autonomously selects the right action. After tool execution, the result is sent back to DeepSeek to generate a natural language response.
+Fallback to keyword matching if 0G Compute is unavailable. No external APIs required.
 
-## The Pitch Line
+## Contract
 
-"You generated an AI image? Now you can prove you are the creator. ChainRight gives verifiable provenance to every AI artwork."
+| Version | Address | Notes |
+|---|---|---|
+| **v3 (active)** | `0xfca49910C81355eE3787e4E87F16a18E593bedB0` | Full parent-child provenance |
+| v2 (legacy) | `0xE76B9fcbf59B4eBE7CE6c41939BA68D65c65Bb44` | Deprecated |
+| v1 (legacy) | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | Deprecated |
 
-## Why Blockchain
+## Wow Moment
 
-This is not "blockchain for blockchain's sake." This solution is IMPOSSIBLE without 0G's properties:
-
-1. **Permanence**: The record never gets erased, never gets modified. A centralized server could change the records at any time.
-2. **Verifiability**: Anyone can verify without asking permission from any company.
-3. **TEE + Chain**: 0G Compute runs in a Trusted Execution Environment, and the result is registered on-chain. It's the only way to say "this inference ACTUALLY happened" without having to trust anyone.
-
-## User's Wallet Experience
-
-Users need:
-- A browser wallet like MetaMask (configured for 0G Testnet)
-- 0G testnet tokens (from the faucet: https://faucet.0g.ai)
-
-No tokens needed to generate — only to mint the NFT on-chain.
-
-## PDF Certificate of Authorship
-
-ChainRight generates a downloadable PDF certificate that serves as a legally presentable proof document. The certificate includes:
-- Thumbnail of the original image
-- Creator wallet address
-- AI model and original prompt
-- Token ID and contract address
-- Merkle Root (cryptographic fingerprint)
-- Sequence Number (on-chain submission reference)
-- Timestamp of registration
-- Direct links to ChainScan Tx, NFT viewer, and StorageScan
-- QR-style unique URL for digital verification
-
-The PDF can be used as legal proof of authorship, timestamped and cryptographically verifiable by anyone with the Merkle Root.
-
-## The Wow Moment in Detail
-
-The verification page features a "Wow Moment" experience designed to demonstrate the power of cryptographic hashing in a visually compelling way:
-
-1. **Split-Screen Image Comparison**: The original and modified images are displayed side by side with a forensic scan line effect. A pulsing indicator highlights the modified pixel location. The images appear identical to the human eye — you cannot tell the difference visually.
-
-2. **Character-by-Character Hash Diff**: Both Merkle Roots (original and modified) are rendered in a side-by-side grid. Each character is color-coded: green for matching, red for differing. After modifying just 1 byte, the entire hash becomes a sea of red — visually proving the avalanche effect of SHA-256.
-
-3. **Animated Similarity Counter**: A counter labeled "Cryptographic Similarity" animates from 100% down to near 0%, reinforcing the mathematical certainty of the hash difference.
-
-4. **Statistics Panel**: Shows Chars Compared, Matching Chars, and the final Cryptographic Similarity percentage.
-
-5. **Conclusion**: "The hashes are COMPLETELY DIFFERENT. This is why it is cryptographically impossible to forge a work registered on ChainRight."
+The verification page features a cryptographic hash comparison:
+1. **Split-screen**: original vs. 1-pixel-modified image (visually identical)
+2. **Hash diff**: character-by-character comparison, green (match) / red (diff)
+3. **Animated counter**: 100% → ~0% similarity
+4. **Conclusion**: "Cryptographically impossible to forge"

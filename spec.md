@@ -12,7 +12,7 @@
 │   (Vercel)            │     │  (tsx, standalone)       │
 └────────┬─────────────┘     └──────────┬───────────────┘
          │                              │
-         │  Server Actions              │  lib/storage.ts
+         │  Server Actions              │  lib/compute.ts
          │  API Routes                  │  lib/contract.ts
          │                              │
          └──────────────┬───────────────┘
@@ -22,8 +22,10 @@
     ┌─────────┐  ┌──────────┐  ┌──────────┐
     │0G Compute│  │0G Storage│  │ 0G Chain │
     │ Flux     │  │ Merkle   │  │ ERC-721  │
-    │ Turbo    │  │ KV/Log   │  │ NFT      │
-    └─────────┘  └──────────┘  └──────────┘
+    │ Turbo    │  │ KV/Log   │  │ NFT  v3  │
+    │ Qwen Img │  └──────────┘  └──────────┘
+    │ Qwen NLP │
+    └─────────┘
 ```
 
 ---
@@ -35,23 +37,37 @@
 | Route | Type | Auth | Description |
 |---|---|---|---|
 | `/` | Static | Public | Landing page (Black & Amber) |
-| `/create` | Client | Wallet | Generate → Store → Mint flow |
+| `/create` | Client | Wallet | Generate → Store → Mint + Register Original + AI Edit |
 | `/verify` | Client | Wallet | Upload → Verify → Wow Moment |
-| `/my-works` | Client | Wallet | Personal gallery |
+| `/my-works` | Client | Wallet | Personal gallery (with "Edit with AI" button) |
 | `/api/storage/upload` | API | Server | Multipart upload to 0G Storage |
+| `/api/storage/download` | API | Server | Download from 0G Storage by Merkle Root |
+| `/api/compute/status` | API | Server | Compute ledger status + deposit |
 | `/api/works` | API | Server | CRUD for db.json |
 | `/api/users/login` | API | Server | User login |
 
-### Data Flow: Create
+### Data Flow: Create (Generate)
 
 ```
-User prompt → Server Action → 0G Compute (provider discovery + inference)
+User prompt → Server Action → 0G Compute (provider discovery + Flux Turbo inference)
     → processResponse() for fee settlement
-    → Show image + provenance
+    → Show image + provenance (ZG-Res-Key, model, prompt)
     → User clicks "Store" → /api/storage/upload → 0G Storage
-    → Merkle Root + Sequence Number
+    → Merkle Root + txSeq
     → User clicks "Mint" → Server Action → ethers v6 → 0G Chain
     → Certificate of Authorship
+```
+
+### Data Flow: AI Edit
+
+```
+User clicks "Edit with AI" on existing work
+    → Loads original image (base64 or StorageScan URL)
+    → 0G Compute (qwen-image-edit-2511) via multipart/form-data
+    → processResponse() for fee settlement
+    → Shows edited image + provenance (ZG-Res-Key, model, edit prompt)
+    → User clicks "Store & Mint" → 0G Storage + 0G Chain with parentTokenId
+    → Dual certificate (original + edited)
 ```
 
 ### Data Flow: Verify
@@ -83,24 +99,28 @@ Black & Amber Edition — extracted from Stitch AI design tool.
 ### Entrypoint: `agent/bot.ts`
 
 ```
-bot.on(":photo" | ":document") → agentThink() [DeepSeek]
-    → tool_calls? → executeTool() → agentRespond() [DeepSeek]
+bot.on(":photo" | ":document") → agentThink() [0G Compute qwen-2.5-7b]
+    → tool_calls? → executeTool() → agentRespond() [0G Compute qwen-2.5-7b]
     → ctx.reply(finalResponse)
     → bot.api.sendDocument(PDF)
 ```
 
 ### NLP: `agent/utils/nlp.ts`
 
-- Uses **DeepSeek chat API** with `tool_choice: "auto"`
+- Uses **0G Compute** `qwen/qwen-2.5-7b-instruct` with OpenAI-compatible tool calling
 - 4 tools defined: `verify_image`, `show_help`, `show_stats`, `chat_reply`
-- System prompt instructs DeepSeek on when to call each tool
-- After tool execution, result fed back to DeepSeek for natural response
-- Fallback to keyword matching if API unavailable
+- System prompt instructs the model on when to call each tool
+- `chatCompletion()` in `lib/compute.ts` handles:
+  - Provider discovery (`discoverProviders("chatbot")`)
+  - Auth header generation (signed with JSON body)
+  - Auto-deposit: if provider returns insufficient balance, deposit 0.1 0G from on-chain wallet and retry
+  - `processResponse()` for fee settlement
+- Fallback to keyword matching if 0G Compute unavailable
 
 ### Memory: `agent/memory/0g-kv.ts`
 
 ```
-agent-state.json → uploadBuffer() → 0G Storage → Merkle Root stored in .0g-kv-root
+agent-state.json → uploadBuffer() → 0G Storage → Merkle Root in .0g-kv-root
 agent-log.json   → uploadBuffer() → 0G Storage
 
 On startup:  downloadFile(merkleRoot) → restore state
@@ -113,7 +133,7 @@ On shutdown: SIGINT → final syncTo0G()
 ```
 Photo/Document → downloadTelegramImage() → Buffer
     → computeMerkleRootFromBuffer() → Merkle Root
-    → verifyProvenance() → contract.getProvenance()
+    → verifyProvenance() → contract.getProvenance() [v3]
     → getTokenIdAndTxByMerkleRoot() → event query
     → generatePdfBuffer() → PDF
     → Returns VerifyImageData (no Telegram messages)
@@ -121,27 +141,43 @@ Photo/Document → downloadTelegramImage() → Buffer
 
 ### Tool Result Format
 
-For `verify_image`, the tool result passed to DeepSeek includes ALL provenance data with explicit formatting instructions:
-
+For `verify_image`, the tool result includes:
 - Creator, AI Model, Prompt, ZK Res Key, Sequence, Timestamp
 - Merkle Root
 - URLs: Mint Tx on ChainScan, NFT on ChainScan, StorageScan
-- Instruction: "Do NOT use Markdown. Plain text with emojis."
 - PDF buffer sent as separate Telegram document
+
+---
+
+## 0G Compute Operations
+
+| Operation | Service Type | Endpoint | Format | Auth Body |
+|---|---|---|---|---|
+| Text-to-Image | `text-to-image` | `/images/generations` | JSON | `JSON.stringify(body)` |
+| Image Editing | `image-editing` | `/images/edits` | multipart/form-data | `""` (empty) |
+| Chatbot NLP | `chatbot` | `/chat/completions` | JSON | `JSON.stringify(body)` |
+
+All three include:
+- Provider discovery (`discoverProviders(serviceType)`)
+- Auto-funding on insufficient balance
+- `processResponse()` call
+- ZG-Res-Key extraction
 
 ---
 
 ## Contract Architecture
 
-### ChainRightERC721 v2 (0xE76B9f...)
+### ChainRightERC721 v3 (active: `0xfca49910C81355eE3787e4E87F16a18E593bedB0`)
 
 ```solidity
 struct ProvenanceRecord {
     bytes32 merkleRoot;
+    bytes32 merkleRootOriginal;   // parent work's Merkle Root (0 if no parent)
     string zkResKey;
     string prompt;
     string model;
-    string sequenceNumber;  // txSeq → links to StorageScan
+    string sequenceNumber;
+    uint256 parentTokenId;         // links to original NFT (0 if no parent)
     uint256 timestamp;
     address creator;
     bool exists;
@@ -150,63 +186,30 @@ struct ProvenanceRecord {
 mapping(bytes32 => ProvenanceRecord) public records;
 mapping(uint256 => bytes32) public tokenToRoot;
 
+function mintProvenanceWithChain(
+    bytes32 merkleRoot_,
+    string memory zkResKey_,
+    string memory prompt_,
+    string memory model_,
+    string memory sequenceNumber_,
+    uint256 parentTokenId_
+) external returns (uint256);
+
 event ProvenanceMinted(uint256 indexed tokenId, bytes32 indexed merkleRoot, ...);
 ```
 
-- `getProvenance(bytes32)` → lookup by Merkle Root
-- `mintWithProvenance(bytes32, string, string, string, string)` → mint with 5 params
-- `tokenURI(uint256)` → on-chain base64 JSON metadata
+### v3 vs v2
+
+| Field | v2 | v3 |
+|---|---|---|
+| `merkleRoot`, `zkResKey`, `prompt`, `model`, `sequenceNumber` | ✅ | ✅ |
+| `merkleRootOriginal` | ❌ | ✅ — links to pre-edit image |
+| `parentTokenId` | ❌ | ✅ — links edited NFT to original |
+| Mint function | `mintWithProvenance(5 args)` | `mintProvenanceWithChain(6 args)` |
 
 ### Agent Event Query
 
-`getTokenIdAndTxByMerkleRoot()` filters `ProvenanceMinted` events by Merkle Root to retrieve tokenId and transactionHash for building ChainScan links.
-
----
-
-## File Structure
-
-```
-chainright/
-├── app/                      # Next.js App Router
-│   ├── create/page.tsx       # Generate → Store → Mint (Client Component)
-│   ├── verify/page.tsx       # Verify + Wow Moment (Client Component)
-│   ├── my-works/page.tsx     # Personal gallery
-│   ├── layout.tsx            # Root layout (Newsreader + Inter)
-│   ├── globals.css           # Black & Amber design tokens
-│   ├── actions.ts            # Server Actions (orchestration)
-│   └── api/                  # API routes
-├── agent/                    # Autonomous Telegram Agent
-│   ├── bot.ts                # Entrypoint (Function Calling loop)
-│   ├── context.ts            # Bot context type
-│   ├── handlers/             # verify.ts, start.ts, help.ts, stats.ts
-│   ├── memory/               # kv.ts, log.ts, 0g-kv.ts
-│   └── utils/                # nlp.ts, telegram.ts, format.ts, pdf.ts, tools.ts
-├── components/               # React components
-│   ├── client-root.tsx       # Shell (nav + footer + wallet gate)
-│   ├── wallet-gate.tsx       # Vault Dial gate (Stitch design)
-│   ├── providers.tsx         # RainbowKit + Wagmi (amber theme)
-│   ├── my-works.tsx          # Gallery grid
-│   ├── certificate-card.tsx  # Certificate display
-│   └── wow-moment.tsx        # Pixel diff + hash comparison
-├── contracts/                # Solidity
-│   └── ChainRightERC721.sol
-├── lib/
-│   ├── storage.ts            # 0G Storage wrapper (ZgFile, Indexer)
-│   ├── compute.ts            # 0G Compute wrapper (Broker)
-│   ├── contract.ts           # ethers v6 wrapper + event query
-│   ├── certificate-pdf.ts    # jsPDF generation
-│   ├── wallet-config.ts      # RainbowKit + Wagmi config
-│   └── types.ts              # Shared TypeScript interfaces
-└── docs/
-    ├── README.md             # Project overview
-    ├── brief.md              # This file — pitch
-    ├── spec.md               # Architecture decisions
-    ├── product.md            # Product vision
-    ├── stack.md              # Tech stack
-    ├── userflow_generar_mintear.md
-    ├── userflow_verificar.md
-    └── userflow_agent_verify.md
-```
+`getTokenIdAndTxByMerkleRoot()` filters `ProvenanceMinted` events by Merkle Root to retrieve tokenId and transactionHash for ChainScan links.
 
 ---
 
@@ -214,9 +217,11 @@ chainright/
 
 | Decision | Rationale |
 |---|---|
-| **DeepSeek over 0G Compute chatbot** | 0G chatbot providers unreliable for demo. DeepSeek is deterministic, cheap, and handles Function Calling natively. |
+| **0G Compute over DeepSeek** | Everything on 0G for hackathon. qwen-2.5-7b handles tool calling in OpenAI format. No external APIs. |
+| **Multipart for image editing** | The `/images/edits` endpoint requires multipart/form-data, not JSON. Auth headers signed with empty string (boundary is dynamic). |
+| **`response_format: b64_json`** | Provider returns internal URLs (`http://0.0.0.0:9999/...`) if not requested. b64_json avoids broken images. |
 | **Local JSON + periodic 0G sync** | Real-time KV streams require Batcher + Flow contracts. Local-first with sync is simpler and still demonstrates 0G Storage KV/Log. |
-| **Separate agent process** | Agent is standalone (tsx), not embedded in Next.js. Avoids build issues with Node.js-only modules (fs, path) in browser bundle. |
+| **Separate agent process** | Agent is standalone (tsx), not embedded in Next.js. Avoids build issues with Node.js-only modules. |
 | **Black & Amber from Stitch** | Design extracted via MCP from Stitch AI tool. Premium editorial aesthetic fits the provenance/certificate brand. |
 | **grammY over telegraf** | Modern framework, full TypeScript support, Function Calling friendly, active maintenance. |
 | **RainbowKit amber theme** | Custom darkTheme with accentColor: #F59E0B, borderRadius: "none" for consistency with design system. |
