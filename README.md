@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Documentation Index](#documentation-index)
 - [0G Product Usage](#0g-product-usage)
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
@@ -15,7 +16,6 @@
 - [Design System](#design-system)
 - [Deployed Contracts](#deployed-contracts)
 - [Commands](#commands)
-- [Documentation Index](#documentation-index)
 
 ---
 
@@ -35,6 +35,26 @@ ChainRight gives every AI-generated image a permanent, verifiable birth certific
 - **0G Compute** — Flux Turbo (text-to-image), qwen-image-edit-2511 (AI editing), qwen-2.5-7b (agent NLP)
 - **0G Storage** — Merkle-proof file storage + KV/Log for agent persistent memory
 - **0G Chain** — ChainRightERC721 NFT (v3) with parent-child provenance chain
+
+---
+
+## Documentation Index
+
+Quick navigation to all documentation files. Click and dive deeper into any topic.
+
+| File | Description |
+|---|---|
+| [`product.md`](./product.md) | Product vision — features, demo flow, agent, all 13 capabilities |
+| [`spec.md`](./spec.md) | Technical architecture — 0G Compute ops, fund flow, contract v3, key decisions |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Visual diagrams — system layers, data flows, fund architecture, components |
+| [`stack.md`](./stack.md) | Technology stack — deps, env vars, network config, critical rules |
+| [`userflow_generate_and_Mint_artwork.md`](./userflow_generate_and_Mint_artwork.md) | Generate + Register Original — prompt, upload, store, mint, certificate |
+| [`userflow_ai_edit_artwork.md`](./userflow_ai_edit_artwork.md) | AI Edit — 0G Compute qwen-image-edit-2511, parent-child chain, dual cert |
+| [`userflow_verify_artwork.md`](./userflow_verify_artwork.md) | Verify — upload, 5-step analysis, wow moment, hash diff |
+| [`userflow_agent_verify.md`](./userflow_agent_verify.md) | Agent — 0G Compute NLP, tool calling, memory sync, PDF delivery |
+| [`AGENTS.md`](./AGENTS.md) | AI assistant orchestration — skills, rules, 0G critical patterns |
+| [`.stitch/DESIGN.md`](./.stitch/DESIGN.md) | Black & Amber design system (from Google Stitch) |
+| [`pivot-docs/impact-analysis.md`](./pivot-docs/impact-analysis.md) | Pivot impact — files changed, contracts, costs, bill of materials |
 
 ---
 
@@ -188,24 +208,6 @@ All include `processResponse()` for fee settlement and auto-retry on insufficien
 | `npm run build` | Build Next.js for production |
 | `npm run compile` | Compile Solidity contracts |
 | `npx hardhat run scripts/deploy.ts --network 0g-testnet` | Deploy to 0G Testnet |
-
----
-
-## Documentation Index
-
-| File | Description |
-|---|---|
-| [`product.md`](./product.md) | Product vision — features, demo flow, agent, all 13 capabilities |
-| [`spec.md`](./spec.md) | Technical architecture — 0G Compute ops, fund flow, contract v3, key decisions |
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Visual diagrams — system layers, data flows, fund architecture, components |
-| [`stack.md`](./stack.md) | Technology stack — deps, env vars, network config, critical rules |
-| [`userflow_generate_and_Mint_artwork.md`](./userflow_generate_and_Mint_artwork.md) | Generate + Register Original — prompt, upload, store, mint, certificate |
-| [`userflow_ai_edit_artwork.md`](./userflow_ai_edit_artwork.md) | AI Edit — 0G Compute qwen-image-edit-2511, parent-child chain, dual cert |
-| [`userflow_verify_artwork.md`](./userflow_verify_artwork.md) | Verify — upload, 5-step analysis, wow moment, hash diff |
-| [`userflow_agent_verify.md`](./userflow_agent_verify.md) | Agent — 0G Compute NLP, tool calling, memory sync, PDF delivery |
-| [`AGENTS.md`](./AGENTS.md) | AI assistant orchestration — skills, rules, 0G critical patterns |
-| [`.stitch/DESIGN.md`](./.stitch/DESIGN.md) | Black & Amber design system (from Google Stitch) |
-| [`pivot-docs/impact-analysis.md`](./pivot-docs/impact-analysis.md) | Pivot impact — files changed, contracts, costs, bill of materials |
 
 ---
 
