@@ -49,7 +49,7 @@ export const PROVIDER_TRANSFER_AMOUNT = "0.1";
 export const PROVIDER_BALANCE_THRESHOLD = "0.5";
 
 /** Estimación de costo por inferencia (varía por provider, ~0.001-0.005 0G). */
-export const ESTIMATED_COST_PER_INFERENCE = "~0.002 0G";
+export const ESTIMATED_COST_PER_INFERENCE = "0.1 0G";
 
 /**
  * Helper: verifica si un error de respuesta del provider es por saldo insuficiente.
@@ -691,6 +691,224 @@ export async function editImage(
       model: "qwen-image-edit-2511",
       prompt: editPrompt,
       error: `Error editing image: ${error.message}`,
+    };
+  }
+}
+
+// ============================================
+// Chat Completions (qwen-2.5-7b-instruct)
+// ============================================
+//
+// Para el agente autónomo de Telegram.
+// Soporta tool calling en formato OpenAI.
+//
+
+export interface ChatMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  tool_call_id?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
+}
+
+export interface ToolDefinition {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+export interface ChatCompletionResult {
+  success: boolean;
+  content: string | null;
+  toolCalls: Array<{
+    id: string;
+    name: string;
+    arguments: Record<string, unknown>;
+  }>;
+  zkResKey: string;
+  providerAddress: string;
+  model: string;
+  error?: string;
+}
+
+/**
+ * Chat completion con tool calling via 0G Compute.
+ * Usa qwen/qwen-2.5-7b-instruct para function calling.
+ *
+ * @param messages Array de mensajes en formato OpenAI
+ * @param tools Tool definitions en formato OpenAI (opcional)
+ * @param providerAddress Address del provider (opcional — descubre automáticamente)
+ *
+ * @rules Mismas que generateImage: ZG-Res-Key del header, processResponse() con orden correcto.
+ */
+export async function chatCompletion(
+  messages: ChatMessage[],
+  tools?: ToolDefinition[],
+  providerAddress?: string
+): Promise<ChatCompletionResult> {
+  try {
+    const broker = await getBroker();
+
+    // ============ PASO 1: Descubrir provider ============
+    let targetProvider = providerAddress;
+
+    if (!targetProvider) {
+      const providers = await discoverProviders("chatbot");
+      if (providers.length === 0) {
+        return {
+          success: false,
+          content: null,
+          toolCalls: [],
+          zkResKey: "",
+          providerAddress: "",
+          model: "qwen-2.5-7b-instruct",
+          error: "No chatbot providers available at this moment",
+        };
+      }
+      const teeProvider = providers.find((p) => p.teeVerified);
+      targetProvider = teeProvider ? teeProvider.address : providers[0].address;
+    }
+
+    // ============ PASO 2: Preparar y enviar request ============
+    const { endpoint, model } = await broker.inference.getServiceMetadata(targetProvider);
+
+    const requestBody: Record<string, unknown> = {
+      model: model || "qwen/qwen-2.5-7b-instruct",
+      messages,
+      max_tokens: 500,
+      temperature: 0.3,
+    };
+
+    if (tools && tools.length > 0) {
+      requestBody.tools = tools;
+      requestBody.tool_choice = "auto";
+    }
+
+    const bodyStr = JSON.stringify(requestBody);
+    const authHeaders = await broker.inference.getRequestHeaders(targetProvider, bodyStr);
+
+    // Convertir headers a Record<string, string>
+    const fetchHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(authHeaders)) {
+      if (typeof value === "string") fetchHeaders[key] = value;
+    }
+
+    let response = await fetch(`${endpoint}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...fetchHeaders,
+      },
+      body: bodyStr,
+    });
+
+    // Si falla por saldo insuficiente, depositar 0.1 0G del wallet on-chain al ledger y reintentar
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      if (isInsufficientBalanceError(errorText)) {
+        console.log("[chatCompletion] Insufficient balance, auto-depositing 0.1 0G from on-chain wallet...");
+        try {
+          await broker.ledger.depositFund(0.1);
+          console.log("[chatCompletion] Auto-deposit successful, retrying...");
+
+          // Reintentar con headers frescos
+          const retryBodyStr = JSON.stringify(requestBody);
+          const retryAuthHeaders = await broker.inference.getRequestHeaders(targetProvider, retryBodyStr);
+          const retryFetchHeaders: Record<string, string> = {};
+          for (const [key, value] of Object.entries(retryAuthHeaders)) {
+            if (typeof value === "string") retryFetchHeaders[key] = value;
+          }
+
+          response = await fetch(`${endpoint}/chat/completions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...retryFetchHeaders,
+            },
+            body: retryBodyStr,
+          });
+        } catch (depositErr: any) {
+          return {
+            success: false,
+            content: null,
+            toolCalls: [],
+            zkResKey: "",
+            providerAddress: targetProvider,
+            model: model || "qwen-2.5-7b-instruct",
+            error: `Auto-deposit failed: ${depositErr.message}. On-chain wallet may not have enough balance.`,
+          };
+        }
+      }
+
+      if (!response.ok) {
+        const finalErrorText = await response.text();
+        return {
+          success: false,
+          content: null,
+          toolCalls: [],
+          zkResKey: "",
+          providerAddress: targetProvider,
+          model: model || "qwen-2.5-7b-instruct",
+          error: `Provider error: ${response.status} ${finalErrorText}`,
+        };
+      }
+    }
+
+    // ============ PASO 3: Extraer ZG-Res-Key ============
+    let chatID = response.headers.get("ZG-Res-Key") || response.headers.get("zg-res-key");
+
+    // ============ PASO 4: Parsear respuesta ============
+    const data = await response.json();
+    const choice = data.choices?.[0];
+
+    let content: string | null = choice?.message?.content || null;
+    const toolCalls: ChatCompletionResult["toolCalls"] = [];
+
+    if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+      for (const tc of choice.message.tool_calls) {
+        toolCalls.push({
+          id: tc.id,
+          name: tc.function.name,
+          arguments: JSON.parse(tc.function.arguments || "{}"),
+        });
+      }
+      content = null; // Si hay tool calls, el content es irrelevante
+    }
+
+    // ============ PASO 5: processResponse() OBLIGATORIO ============
+    if (chatID) {
+      try {
+        const usageData = data.usage ? JSON.stringify(data.usage) : undefined;
+        await broker.inference.processResponse(targetProvider, chatID, usageData);
+      } catch (processErr: any) {
+        console.error("Error en processResponse:", processErr.message);
+      }
+    }
+
+    return {
+      success: true,
+      content,
+      toolCalls,
+      zkResKey: chatID || "",
+      providerAddress: targetProvider,
+      model: model || "qwen-2.5-7b-instruct",
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      content: null,
+      toolCalls: [],
+      zkResKey: "",
+      providerAddress: providerAddress || "",
+      model: "qwen-2.5-7b-instruct",
+      error: `Error in chat completion: ${error.message}`,
     };
   }
 }

@@ -154,5 +154,15 @@
     "message": "Authenticity confirmed (document)",
     "id": "1777818393857-3vsqzk",
     "timestamp": "2026-05-03T14:26:33.857Z"
+  },
+  {
+    "userId": 940982207,
+    "username": "arrozdev",
+    "action": "verify",
+    "merkleRoot": "0x3c1c1a903871cadee0defa0d199997befd881f31285bd4fda4b73574ca9efc8d",
+    "verified": true,
+    "message": "Authenticity confirmed (document)",
+    "id": "1778902552488-jy91fl",
+    "timestamp": "2026-05-16T03:35:52.488Z"
   }
 ]
