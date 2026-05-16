@@ -84,7 +84,7 @@ function getWriteContract(signerOrPrivateKey?: ethers.Signer | string): Contract
 // ============================================
 
 /**
- * Consulta el registro de procedencia por Merkle Root.
+ * Consulta el registro de procedencia por Merkle Root (v3).
  * Función principal para verificar autenticidad.
  * 
  * @param merkleRoot bytes32 como string hex (debe empezar con 0x)
@@ -93,13 +93,12 @@ export async function getProvenance(merkleRoot: string): Promise<Provenance | nu
   try {
     const contract = getReadContract();
 
-    // Normalizar: asegurarse que empiece con 0x
     const normalizedRoot = merkleRoot.startsWith("0x") ? merkleRoot : `0x${merkleRoot}`;
 
     const result = await contract.getProvenance(normalizedRoot);
 
-    // result es una tupla de 8 valores: [merkleRoot, zkResKey, prompt, model, sequenceNumber, timestamp, creator, exists]
-    const exists = result[7] as boolean;
+    // v3 devuelve 10 valores: [merkleRoot, merkleRootOriginal, zkResKey, prompt, model, sequenceNumber, parentTokenId, timestamp, creator, exists]
+    const exists = result[9] as boolean;
 
     if (!exists) {
       return null;
@@ -107,12 +106,14 @@ export async function getProvenance(merkleRoot: string): Promise<Provenance | nu
 
     return {
       merkleRoot: result[0] as string,
-      zkResKey: result[1] as string,
-      prompt: result[2] as string,
-      model: result[3] as string,
-      sequenceNumber: result[4] as string,
-      timestamp: result[5] as bigint,
-      creator: result[6] as string,
+      merkleRootOriginal: result[1] as string,
+      zkResKey: result[2] as string,
+      prompt: result[3] as string,
+      model: result[4] as string,
+      sequenceNumber: result[5] as string,
+      parentTokenId: result[6] as bigint,
+      timestamp: result[7] as bigint,
+      creator: result[8] as string,
       exists: true,
     };
   } catch (error: any) {
@@ -122,7 +123,7 @@ export async function getProvenance(merkleRoot: string): Promise<Provenance | nu
 }
 
 /**
- * Consulta procedencia por Token ID.
+ * Consulta procedencia por Token ID (v3).
  */
 export async function getProvenanceByToken(tokenId: bigint | number): Promise<Provenance | null> {
   try {
@@ -130,7 +131,7 @@ export async function getProvenanceByToken(tokenId: bigint | number): Promise<Pr
     const tokenIdBigInt = typeof tokenId === "number" ? BigInt(tokenId) : tokenId;
 
     const result = await contract.getProvenanceByToken(tokenIdBigInt);
-    const exists = result[7] as boolean;
+    const exists = result[9] as boolean;
 
     if (!exists) {
       return null;
@@ -138,12 +139,14 @@ export async function getProvenanceByToken(tokenId: bigint | number): Promise<Pr
 
     return {
       merkleRoot: result[0] as string,
-      zkResKey: result[1] as string,
-      prompt: result[2] as string,
-      model: result[3] as string,
-      sequenceNumber: result[4] as string,
-      timestamp: result[5] as bigint,
-      creator: result[6] as string,
+      merkleRootOriginal: result[1] as string,
+      zkResKey: result[2] as string,
+      prompt: result[3] as string,
+      model: result[4] as string,
+      sequenceNumber: result[5] as string,
+      parentTokenId: result[6] as bigint,
+      timestamp: result[7] as bigint,
+      creator: result[8] as string,
       exists: true,
     };
   } catch (error: any) {
@@ -221,15 +224,9 @@ export async function getCreatorWorksCount(creator: string): Promise<number> {
 // ============================================
 
 /**
- * Mintea un NFT con procedencia.
- * 
- * @param merkleRoot bytes32 del Merkle Root
- * @param zkResKey ZG-Res-Key de la inferencia
- * @param prompt Prompt exacto usado
- * @param model Modelo de IA usado
- * @param sequenceNumber txSeq de 0G Storage
- * @param metadataUri URI de metadata (opcional)
- * @param signerOrPrivateKey Signer o private key para firmar
+ * Mintea un NFT con procedencia (backward compat → delega a v3).
+ * Para Mode 2 (Generate with AI) y compatibilidad hacia atrás.
+ * Internamente llama a mintProvenanceWithChain con valores por defecto.
  */
 export async function mintWithProvenance(
   merkleRoot: string,
@@ -240,25 +237,66 @@ export async function mintWithProvenance(
   metadataUri: string,
   signerOrPrivateKey?: ethers.Signer | string
 ): Promise<MintResult> {
+  // Delegar a v3 con merkleRootOriginal = 0x0 y parentTokenId = 0
+  return mintProvenanceWithChain(
+    merkleRoot,
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    zkResKey,
+    prompt,
+    model,
+    sequenceNumber,
+    BigInt(0),
+    signerOrPrivateKey
+  );
+}
+
+/**
+ * Mintea un NFT con procedencia completa (v3).
+ *
+ * Para obras ORIGINALES (sin IA):
+ *   merkleRootOriginal = ""  (se envía como bytes32(0) al contrato)
+ *   parentTokenId      = 0
+ *   zkResKey           = ""
+ *   prompt             = ""
+ *   model              = "none"
+ *
+ * Para obras EDITADAS CON IA (Mode 2):
+ *   merkleRootOriginal = hash de la obra original
+ *   parentTokenId      = Token ID de la obra original
+ *   zkResKey           = ZG-Res-Key de la inferencia
+ *   prompt             = prompt de edición
+ *   model              = modelo de IA (ej: "qwen-image-edit-2511")
+ */
+export async function mintProvenanceWithChain(
+  merkleRoot: string,
+  merkleRootOriginal: string,
+  zkResKey: string,
+  prompt: string,
+  model: string,
+  sequenceNumber: string,
+  parentTokenId: bigint | number,
+  signerOrPrivateKey?: ethers.Signer | string
+): Promise<MintResult> {
   try {
     const contract = getWriteContract(signerOrPrivateKey);
 
-    // Normalizar merkleRoot
     const normalizedRoot = merkleRoot.startsWith("0x") ? merkleRoot : `0x${merkleRoot}`;
+    const normalizedOriginal = merkleRootOriginal.startsWith("0x") ? merkleRootOriginal : `0x${merkleRootOriginal || "0".repeat(64)}`;
+    const parentTokenIdBig = typeof parentTokenId === "number" ? BigInt(parentTokenId) : parentTokenId;
 
-    // Llamar a mintWithProvenance con 5 args (v2: incluye sequenceNumber)
-    const tx: ContractTransactionResponse = await contract["mintWithProvenance(bytes32,string,string,string,string)"](
+    const tx: ContractTransactionResponse = await contract["mintProvenanceWithChain(bytes32,bytes32,string,string,string,string,uint256)"](
       normalizedRoot,
+      normalizedOriginal,
       zkResKey,
       prompt,
       model,
-      sequenceNumber
+      sequenceNumber,
+      parentTokenIdBig
     );
 
     console.log("Transaction sent:", tx.hash);
     console.log("Waiting for confirmation...");
 
-    // Esperar confirmación
     const receipt = await tx.wait();
 
     if (!receipt) {
@@ -268,7 +306,6 @@ export async function mintWithProvenance(
       };
     }
 
-    // Extraer Token ID del evento ProvenanceMinted
     let tokenId: bigint | undefined;
 
     for (const log of receipt.logs) {
@@ -282,7 +319,7 @@ export async function mintWithProvenance(
           break;
         }
       } catch {
-        // Ignorar logs que no son de nuestro contrato
+        // Ignorar
       }
     }
 

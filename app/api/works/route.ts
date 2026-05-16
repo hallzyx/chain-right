@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as Partial<DbWork>;
-    if (!body.wallet || !body.merkleRoot || !body.prompt) {
+    if (!body.wallet || !body.merkleRoot) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
         { status: 400 }
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       id: body.id || `wrk_${Date.now()}`,
       wallet: body.wallet,
       title: body.title || "Obra sin título",
-      prompt: body.prompt,
+      prompt: body.prompt || "",
       source: body.source || "0g-compute",
       model: body.model || "unknown",
       imageDataUrl: body.imageDataUrl || "",
@@ -49,7 +49,12 @@ export async function POST(req: NextRequest) {
       mintTxHash: body.mintTxHash,
       status: body.status || "minted",
       createdAt: body.createdAt || new Date().toISOString(),
-      // StorageScan URLs — necesarios para los botones de "Ver en StorageScan"
+      // v3 fields
+      mode: body.mode || "original",
+      parentTokenId: body.parentTokenId,
+      editPrompt: body.editPrompt,
+      merkleRootOriginal: body.merkleRootOriginal,
+      // StorageScan URLs
       sequenceNumber: body.sequenceNumber,
       submissionUrl: body.submissionUrl,
       fileStorageUrl: body.fileStorageUrl,

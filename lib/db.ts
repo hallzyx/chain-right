@@ -11,7 +11,7 @@ export interface DbWork {
   wallet: string;
   title: string;
   prompt: string;
-  source: "0g-compute" | "openai-fallback";
+  source: "0g-compute" | "openai-fallback" | "upload";
   model: string;
   imageDataUrl: string;
   merkleRoot: string;
@@ -21,10 +21,15 @@ export interface DbWork {
   mintTxHash?: string;
   status: "generated" | "stored" | "minted";
   createdAt: string;
+  // NEW v3 fields
+  mode: "original" | "ai-assist";   // modo de la obra
+  parentTokenId?: string;            // Token ID de la obra original (solo ai-assist)
+  editPrompt?: string;               // prompt de edición IA (solo ai-assist)
+  merkleRootOriginal?: string;       // hash de la obra original (solo ai-assist)
   // Campos para StorageScan URLs
-  sequenceNumber?: string;      // txSeq del SDK — número de submission para StorageScan
-  submissionUrl?: string;       // https://storagescan-galileo.0g.ai/submission/[txSeq]
-  fileStorageUrl?: string;      // URL del archivo en Storage (fallback por merkle root)
+  sequenceNumber?: string;
+  submissionUrl?: string;
+  fileStorageUrl?: string;
 }
 
 export interface DbSchema {

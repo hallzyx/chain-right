@@ -593,6 +593,49 @@ export default function VerifyPage() {
                 </div>
               </section>
 
+              {/* Parent Chain: Based on Original Work */}
+              {verificationResult.verified && verificationResult.parentProvenance && (
+                <section>
+                  <div className="bg-[#1e1e1e] p-8 border-l-2 border-[#8fd5ff]">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Link2 className="w-5 h-5 text-[#8fd5ff]" strokeWidth={1.5} />
+                      <h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8fd5ff]">
+                        Based on Original Work
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                      <ProvenanceItem
+                        label="CREATOR"
+                        value={shortenAddress(verificationResult.parentProvenance.creator)}
+                      />
+                      <ProvenanceItem
+                        label="MODEL"
+                        value={verificationResult.parentProvenance.model}
+                      />
+                      <ProvenanceItem
+                        label="PARENT TOKEN ID"
+                        value={`#${verificationResult.parentProvenance.parentTokenId?.toString() || "—"}`}
+                      />
+                      <ProvenanceItem
+                        label="REGISTERED"
+                        value={new Date(Number(verificationResult.parentProvenance.timestamp) * 1000).toLocaleString("en-US")}
+                      />
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-white/5">
+                      <a
+                        href={`https://chainscan-galileo.0g.ai/nft/${trace.contractAddress || process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${verificationResult.parentProvenance.parentTokenId?.toString()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-[#8fd5ff] hover:text-[#f59e0b] transition-colors flex items-center gap-2"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View Original NFT on ChainScan
+                      </a>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {/* Download PDF */}
               <button
                 onClick={handleDownloadPdf}

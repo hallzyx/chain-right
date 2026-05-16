@@ -1,8 +1,8 @@
 "use server";
 
-import { generateImage } from "@/lib/compute";
+import { generateImage, editImage, ensureComputeAccount } from "@/lib/compute";
 import { uploadBuffer, computeMerkleRootFromBuffer } from "@/lib/storage";
-import { mintWithProvenance, verifyProvenance, isContractConfigured } from "@/lib/contract";
+import { mintWithProvenance, verifyProvenance, isContractConfigured, mintProvenanceWithChain } from "@/lib/contract";
 import { bufferToDataUrl } from "@/lib/utils";
 import { discoverProviders } from "@/lib/compute";
 import { generateImageWithOpenAI } from "@/lib/openai";
@@ -34,6 +34,25 @@ export async function actionGenerateImage(
   }
 
   console.log("Generating image with prompt:", prompt);
+
+  // Auto-create compute account if it doesn't exist
+  const accountCheck = await ensureComputeAccount();
+  if (!accountCheck.success) {
+    return {
+      success: false,
+      fallbackRequired: true,
+      fallbackReason: accountCheck.message,
+      source: "0g-compute",
+      zkResKey: "",
+      providerAddress: "",
+      model: "flux-turbo",
+      prompt,
+      error: accountCheck.message,
+    };
+  }
+  if (accountCheck.created) {
+    console.log("Compute account auto-created:", accountCheck.message);
+  }
 
   // 1) Intentar con 0G providers disponibles
   const providers = await discoverProviders("text-to-image");
@@ -92,6 +111,43 @@ export async function actionGenerateImageWithFallback(
   if (result.success && result.imageData) {
     result.imageUrl = bufferToDataUrl(result.imageData, "image/png");
   }
+
+  return result;
+}
+
+/**
+ * Action para editar una imagen existente con IA via 0G Compute.
+ * Usa qwen/qwen-image-edit-2511 para modificar la imagen original según el prompt.
+ *
+ * @param imageBase64 Imagen original en base64 (sin data: prefix)
+ * @param editPrompt Prompt de edición
+ */
+export async function actionEditImage(
+  imageBase64: string,
+  editPrompt: string
+): Promise<ImageGenerationResult> {
+  // Auto-create compute account if it doesn't exist
+  const accountCheck = await ensureComputeAccount();
+  if (!accountCheck.success) {
+    return {
+      success: false,
+      zkResKey: "",
+      providerAddress: "",
+      model: "qwen-image-edit-2511",
+      prompt: editPrompt,
+      error: accountCheck.message,
+    };
+  }
+
+  const result = await editImage(imageBase64, editPrompt);
+
+  if (result.success && result.imageData) {
+    result.imageUrl = bufferToDataUrl(result.imageData, "image/png");
+  }
+
+  // Delete imageData to avoid "Maximum array nesting" serialization error
+  // The client only needs imageUrl (which is the same data as base64)
+  delete (result as any).imageData;
 
   return result;
 }
@@ -220,6 +276,46 @@ export async function actionMintNFT(
 }
 
 /**
+ * Action para mintear un NFT con procedencia completa (v3).
+ * Usado por Mode 1 + AI Edit (con parentTokenId).
+ */
+export async function actionMintProvenanceWithChain(
+  merkleRoot: string,
+  merkleRootOriginal: string,
+  zkResKey: string,
+  prompt: string,
+  model: string,
+  sequenceNumber: string,
+  parentTokenId: bigint
+): Promise<MintResult> {
+  if (!isContractConfigured()) {
+    return {
+      success: false,
+      error: "Contract not configured. Deploy ChainRightERC721 first and set NEXT_PUBLIC_CONTRACT_ADDRESS in .env",
+    };
+  }
+
+  console.log("Minting NFT with chain...");
+  console.log("- Merkle Root:", merkleRoot);
+  console.log("- Original Root:", merkleRootOriginal);
+  console.log("- ZG-Res-Key:", zkResKey);
+  console.log("- Prompt:", prompt);
+  console.log("- Model:", model);
+  console.log("- Sequence Number:", sequenceNumber);
+  console.log("- Parent Token ID:", parentTokenId.toString());
+
+  return await mintProvenanceWithChain(
+    merkleRoot,
+    merkleRootOriginal,
+    zkResKey,
+    prompt,
+    model,
+    sequenceNumber,
+    parentTokenId
+  );
+}
+
+/**
  * Action para verificar la procedencia de una imagen.
  */
 export async function actionVerifyImage(
@@ -241,11 +337,24 @@ export async function actionVerifyImage(
   // 2. Verificar en el contrato
   if (isContractConfigured()) {
     const result = await verifyProvenance(merkleRoot);
+
+    // 3. Si tiene parentTokenId, buscar la obra original también
+    if (result.verified && result.provenance && result.provenance.parentTokenId > BigInt(0)) {
+      try {
+        const { getProvenanceByToken } = await import("@/lib/contract");
+        const parent = await getProvenanceByToken(result.provenance.parentTokenId);
+        if (parent) {
+          return { ...result, parentProvenance: parent };
+        }
+      } catch (e) {
+        console.warn("Could not fetch parent provenance:", e);
+      }
+    }
+
     return result;
   }
 
-  // 3. Si el contrato no está configurado, devolvemos que no hay registro
-  // (pero mostramos el hash calculado)
+  // 3. Si el contrato no está configurado
   return {
     verified: false,
     merkleRoot,
