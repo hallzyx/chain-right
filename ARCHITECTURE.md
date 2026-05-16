@@ -19,8 +19,8 @@
     │  Next.js 15      │  │  RainbowKit      │  │  Telegram Bot Agent (grammY)   │
     │  App Router      │  │  (Amber theme)   │  │                                 │
     │  (Vercel)        │  │                  │  │  ┌─────────────────────────┐    │
-    │                  │  │  Wallet Connect  │  │  │  DeepSeek NLP           │    │
-    │  /               │  │  Network Switch  │  │  │  (Function Calling)     │    │
+    │                  │  │  Wallet Connect  │  │  │  0G Compute NLP           │    │
+    │  /               │  │  Network Switch  │  │  │  (qwen-2.5-7b-instruct)     │    │
     │  /create          │  │──────────────────│  │  │                         │    │
     │  /verify          │          │          │  │  │  Tools:                 │    │
     │  /my-works        │          ▼          │  │  │  • verify_image         │    │
@@ -70,6 +70,66 @@
 ```
 
 ---
+
+
+---
+
+## 0G Compute Fund Architecture
+
+The system has **3 layers of funds** that flow from user wallet to provider consumption:
+
+```
+┌─────────────────────────────────────┐
+│   USER WALLET (on-chain)            │
+│   depositFund(amount)               │
+└──────────────────┬──────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────┐
+│   COMPUTE LEDGER (main account)     │
+│   holds funds before distribution    │
+└────┬──────────┬─────────────────────┘
+     │          │
+     │ transferFund(provider, amt)     │
+     ▼          ▼
+┌────────┐ ┌────────┐  ┌────────────┐
+│Provider│ │Provider│  │ Provider   │
+│ Sub-Ac │ │ Sub-Ac │  │  Sub-Ac    │
+├────────┤ ├────────┤  ├────────────┤
+│ Text-  │ │ Image  │  │  Chatbot   │
+│ to-Img │ │ Editing│  │  (Agent)   │
+│ Flux   │ │ Qwen   │  │  Qwen 2.5  │
+│ Turbo  │ │ Edit   │  │  7B        │
+├────────┤ ├────────┤  ├────────────┤
+│Reserve:│ │Reserve:│  │Reserve:    │
+│ 1.0 0G │ │ 1.0 0G│  │ 1.0 0G     │
+│Cost/im:│ │Cost/im:│  │Cost/query: │
+│~0.003  │ │~0.003 │  │~0.0000001  │
+└────────┘ └────────┘  └────────────┘
+```
+
+### Auto-Funding by Operation
+
+| Operation | On "insufficient balance" | Action |
+|---|---|---|
+| `generateImage()` | Transfer from ledger to provider | `broker.ledger.transferFund()` |
+| `editImage()` | Transfer from ledger to provider | `broker.ledger.transferFund()` |
+| `chatCompletion()` | Deposit from wallet to ledger | `broker.ledger.depositFund()` |
+
+### Reserve Mechanism
+
+Each provider sub-account requires **1.0 0G minimum reserve** (collateral, not spent).
+Fees from previous incomplete `processResponse()` calls accumulate as "unsettled fees"
+and increase the minimum required balance.
+
+### Costs
+
+| Operation | Est. Cost |
+|---|---|
+| Text-to-Image (Flux Turbo) | ~0.003 0G |
+| Image Editing (qwen-image-edit-2511) | ~0.003 0G |
+| Chat (qwen-2.5-7b, think + respond) | ~0.0000003 0G |
+| 0G Storage Upload | ~0.0001 0G |
 
 ## Web App Data Flow
 
@@ -132,7 +192,7 @@
 │                ▼                                              │
 │  ┌──────────────────────────────┐                            │
 │  │  agentThink()                 │                            │
-│  │  DeepSeek API                 │                            │
+│  │  0G Compute                 │                            │
 │  │  • System prompt              │                            │
 │  │  • 4 tools available         │                            │
 │  │  • tool_choice: "auto"       │                            │
@@ -169,7 +229,7 @@
 │                 ▼                                             │
 │  ┌──────────────────────────────┐                            │
 │  │  agentRespond()               │                            │
-│  │  DeepSeek API                 │                            │
+│  │  0G Compute                 │                            │
 │  │  • Tool result + instructions │                            │
 │  │  • Generates natural response │                            │
 │  └──────────────┬───────────────┘                            │
@@ -341,7 +401,7 @@
 │  │ Chain ID: 16602                           │         │
 │  │ evmVersion: cancun                        │         │
 │  │ Compiler: 0.8.24                          │         │
-│  │ Address: 0xE76B9fcb...                    │         │
+│  │ Address: 0xfca49910C81355eE3787e4E87F16a18E593bedB0                    │         │
 │  └──────────────────────────────────────────┘         │
 └───────────────────────────────────────────────────────┘
 ```
@@ -366,9 +426,9 @@
 ├───────────────────────────────────────────────────────┤
 │                   INTELLIGENCE LAYER                   │
 │                                                       │
-│  DeepSeek chat API (NLP / Function Calling)           │
-│  0G Compute · Flux Turbo (TEE-verified inference)    │
-│  OpenAI fallback (user-consented)                     │
+│  0G Compute chat API (NLP / Function Calling)           │
+│  0G Compute (TEE-verified): Flux Turbo | qwen-image-edit-2511 | qwen-2.5-7b    │
+│                       │
 ├───────────────────────────────────────────────────────┤
 │                   PERSISTENCE LAYER                    │
 │                                                       │
