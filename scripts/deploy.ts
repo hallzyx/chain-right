@@ -3,8 +3,10 @@ import hre from "hardhat";
 const { ethers } = hre;
 
 /**
- * Deploy script para ChainRightERC721 en 0G Chain.
- * 
+ * Deploy script para ChainRightERC721 v3 en 0G Chain.
+ *
+ * v3 agrega merkleRootOriginal, parentTokenId y mintProvenanceWithChain().
+ *
  * Para ejecutar en Testnet (Galileo):
  * npx hardhat run scripts/deploy.ts --network 0g-testnet
  * 

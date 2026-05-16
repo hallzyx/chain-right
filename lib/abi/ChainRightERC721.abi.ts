@@ -1,15 +1,15 @@
 /**
- * ABI completo de ChainRightERC721 — v2 con sequenceNumber.
- * Generado automáticamente por Hardhat.
+ * ABI completo de ChainRightERC721 — v3 con merkleRootOriginal + parentTokenId.
+ * REGENERAR después de compilar: npm run compile.
  *
- * Cambios v2:
- * - mintWithProvenance: ahora 5 params (agregado sequenceNumber_)
- * - getProvenance / getProvenanceByToken: devuelven 8 valores (agregado sequenceNumber)
- * - records: devuelve 8 valores (agregado sequenceNumber)
- * - ProvenanceMinted: emite sequenceNumber adicional
- * - tokenURI: incluye Sequence Number en atributos on-chain
+ * v3: Agrega merkleRootOriginal, parentTokenId, mintProvenanceWithChain()
+ * v2: Agregó sequenceNumber (txSeq) al struct.
+ * v1: Lanzamiento inicial con 4-arg mintWithProvenance.
  */
-export const CHAINRIGHT_ABI = [
+
+import type { InterfaceAbi } from "ethers";
+
+export const CHAINRIGHT_ABI: InterfaceAbi = [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -18,9 +18,24 @@ export const CHAINRIGHT_ABI = [
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "owner", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "approved", "type": "address" },
-      { "indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "approved",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
     ],
     "name": "Approval",
     "type": "event"
@@ -28,9 +43,24 @@ export const CHAINRIGHT_ABI = [
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "owner", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "operator", "type": "address" },
-      { "indexed": false, "internalType": "bool", "name": "approved", "type": "bool" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "operator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
+      }
     ],
     "name": "ApprovalForAll",
     "type": "event"
@@ -38,8 +68,18 @@ export const CHAINRIGHT_ABI = [
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
     "name": "OwnershipTransferred",
     "type": "event"
@@ -47,13 +87,60 @@ export const CHAINRIGHT_ABI = [
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256" },
-      { "indexed": true, "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" },
-      { "indexed": true, "internalType": "address", "name": "creator", "type": "address" },
-      { "indexed": false, "internalType": "string", "name": "zkResKey", "type": "string" },
-      { "indexed": false, "internalType": "string", "name": "prompt", "type": "string" },
-      { "indexed": false, "internalType": "string", "name": "model", "type": "string" },
-      { "indexed": false, "internalType": "string", "name": "sequenceNumber", "type": "string" }
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "merkleRoot",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "merkleRootOriginal",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "zkResKey",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "prompt",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "model",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "sequenceNumber",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "parentTokenId",
+        "type": "uint256"
+      }
     ],
     "name": "ProvenanceMinted",
     "type": "event"
@@ -61,17 +148,40 @@ export const CHAINRIGHT_ABI = [
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
-      { "indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256" }
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
     ],
     "name": "Transfer",
     "type": "event"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "to", "type": "address" },
-      { "internalType": "uint256", "name": "tokenId", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
     ],
     "name": "approve",
     "outputs": [],
@@ -79,97 +189,301 @@ export const CHAINRIGHT_ABI = [
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
     "name": "balanceOf",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "", "type": "address" },
-      { "internalType": "uint256", "name": "", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
     "name": "creatorToRoots",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "creator", "type": "address" },
-      { "internalType": "uint256", "name": "index", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
     ],
     "name": "creatorWork",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "address", "name": "creator", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      }
+    ],
     "name": "creatorWorksCount",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
     "name": "getApproved",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "bytes32", "name": "merkleRoot_", "type": "bytes32" }],
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "merkleRoot_",
+        "type": "bytes32"
+      }
+    ],
     "name": "getProvenance",
     "outputs": [
-      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" },
-      { "internalType": "string", "name": "zkResKey", "type": "string" },
-      { "internalType": "string", "name": "prompt", "type": "string" },
-      { "internalType": "string", "name": "model", "type": "string" },
-      { "internalType": "string", "name": "sequenceNumber", "type": "string" },
-      { "internalType": "uint256", "name": "timestamp", "type": "uint256" },
-      { "internalType": "address", "name": "creator", "type": "address" },
-      { "internalType": "bool", "name": "exists", "type": "bool" }
+      {
+        "internalType": "bytes32",
+        "name": "merkleRoot",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "merkleRootOriginal",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "zkResKey",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "prompt",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "model",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "sequenceNumber",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "parentTokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
     "name": "getProvenanceByToken",
     "outputs": [
-      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" },
-      { "internalType": "string", "name": "zkResKey", "type": "string" },
-      { "internalType": "string", "name": "prompt", "type": "string" },
-      { "internalType": "string", "name": "model", "type": "string" },
-      { "internalType": "string", "name": "sequenceNumber", "type": "string" },
-      { "internalType": "uint256", "name": "timestamp", "type": "uint256" },
-      { "internalType": "address", "name": "creator", "type": "address" },
-      { "internalType": "bool", "name": "exists", "type": "bool" }
+      {
+        "internalType": "bytes32",
+        "name": "merkleRoot",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "merkleRootOriginal",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "zkResKey",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "prompt",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "model",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "sequenceNumber",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "parentTokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "owner", "type": "address" },
-      { "internalType": "address", "name": "operator", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "operator",
+        "type": "address"
+      }
     ],
     "name": "isApprovedForAll",
-    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "bytes32", "name": "merkleRoot_", "type": "bytes32" },
-      { "internalType": "string", "name": "zkResKey_", "type": "string" },
-      { "internalType": "string", "name": "prompt_", "type": "string" },
-      { "internalType": "string", "name": "model_", "type": "string" },
-      { "internalType": "string", "name": "sequenceNumber_", "type": "string" }
+      {
+        "internalType": "bytes32",
+        "name": "merkleRoot_",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "merkleRootOriginal_",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "zkResKey_",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "prompt_",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "model_",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "sequenceNumber_",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "parentTokenId_",
+        "type": "uint256"
+      }
     ],
-    "name": "mintWithProvenance",
+    "name": "mintProvenanceWithChain",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -177,36 +491,108 @@ export const CHAINRIGHT_ABI = [
   {
     "inputs": [],
     "name": "name",
-    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "owner",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
     "name": "ownerOf",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
     "name": "records",
     "outputs": [
-      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" },
-      { "internalType": "string", "name": "zkResKey", "type": "string" },
-      { "internalType": "string", "name": "prompt", "type": "string" },
-      { "internalType": "string", "name": "model", "type": "string" },
-      { "internalType": "string", "name": "sequenceNumber", "type": "string" },
-      { "internalType": "uint256", "name": "timestamp", "type": "uint256" },
-      { "internalType": "address", "name": "creator", "type": "address" },
-      { "internalType": "bool", "name": "exists", "type": "bool" }
+      {
+        "internalType": "bytes32",
+        "name": "merkleRoot",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "merkleRootOriginal",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "zkResKey",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "prompt",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "model",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "sequenceNumber",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "parentTokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -220,9 +606,21 @@ export const CHAINRIGHT_ABI = [
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "from", "type": "address" },
-      { "internalType": "address", "name": "to", "type": "address" },
-      { "internalType": "uint256", "name": "tokenId", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
     ],
     "name": "safeTransferFrom",
     "outputs": [],
@@ -231,10 +629,26 @@ export const CHAINRIGHT_ABI = [
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "from", "type": "address" },
-      { "internalType": "address", "name": "to", "type": "address" },
-      { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
-      { "internalType": "bytes", "name": "data", "type": "bytes" }
+      {
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
     ],
     "name": "safeTransferFrom",
     "outputs": [],
@@ -243,8 +657,16 @@ export const CHAINRIGHT_ABI = [
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "operator", "type": "address" },
-      { "internalType": "bool", "name": "approved", "type": "bool" }
+      {
+        "internalType": "address",
+        "name": "operator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
+      }
     ],
     "name": "setApprovalForAll",
     "outputs": [],
@@ -253,8 +675,16 @@ export const CHAINRIGHT_ABI = [
   },
   {
     "inputs": [
-      { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
-      { "internalType": "string", "name": "metadataUri", "type": "string" }
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "metadataUri",
+        "type": "string"
+      }
     ],
     "name": "setTokenMetadataUri",
     "outputs": [],
@@ -262,45 +692,111 @@ export const CHAINRIGHT_ABI = [
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "bytes4", "name": "interfaceId", "type": "bytes4" }],
+    "inputs": [
+      {
+        "internalType": "bytes4",
+        "name": "interfaceId",
+        "type": "bytes4"
+      }
+    ],
     "name": "supportsInterface",
-    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "symbol",
-    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
-    "name": "tokenMetadataUri",
-    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "name": "tokenToRoot",
-    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
-    "name": "tokenURI",
-    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "from", "type": "address" },
-      { "internalType": "address", "name": "to", "type": "address" },
-      { "internalType": "uint256", "name": "tokenId", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenMetadataUri",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenToRoot",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenURI",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
     ],
     "name": "transferFrom",
     "outputs": [],
@@ -308,10 +804,16 @@ export const CHAINRIGHT_ABI = [
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
     "name": "transferOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   }
-] as const;
+];

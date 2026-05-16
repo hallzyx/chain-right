@@ -39,9 +39,11 @@
 |---|---|---|---|
 | ChainRightERC721 v1 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
 | ChainRightERC721 v1 | 0G Testnet | `0xF11baF976030502598569ECf65A9F8dbFA3C8434` | ⬜ |
+| ChainRightERC721 v3 | 0G Testnet | `0xfca49910C81355eE3787e4E87F16a18E593bedB0` | ⬜ |
 | ChainRightERC721 v2 | 0G Testnet | `0xE76B9fcbf59B4eBE7CE6c41939BA68D65c65Bb44` | ⬜ |
+| ChainRightERC721 v1 | 0G Testnet | `0x4424d49ED6d3748980FFfB0ba0b2a4e92db4Ed05` | ⬜ |
 
-> v2 adds `sequenceNumber` (txSeq) to the struct + `mintWithProvenance` now accepts 5 params + `tokenURI` on-chain.
+> v3 agrega `merkleRootOriginal`, `parentTokenId` al struct + `mintProvenanceWithChain()` para el flujo completo de edición IA. Compatible hacia atrás con v2.
 
 ## Agent Skills
 
